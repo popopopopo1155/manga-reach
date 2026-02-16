@@ -69,63 +69,95 @@ function App() {
         </div>
       </header>
 
-      <main className="manga-grid">
-        <AnimatePresence mode="popLayout">
-          {results.map((manga, index) => (
-            <motion.div
-              key={manga.id}
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4, delay: (index % 10) * 0.05 }}
-              className="manga-card glass"
-            >
-              <div className="cover-container">
-                <img src={manga.cover} alt={manga.title} className="manga-cover" />
-              </div>
+      <main className="container">
+        <section className="search-section">
+          <div className="search-container">
+            <Search className="search-icon" size={20} />
+            <input
+              type="text"
+              placeholder="作品名、著者、ジャンルで検索..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="search-input"
+            />
+          </div>
+        </section>
 
-              <div className="card-content">
-                <div className="rating">
-                  <Star size={14} fill="#fbbf24" stroke="none" />
-                  <span>{manga.rating}</span>
-                </div>
-                <h3 className="manga-title">{manga.title}</h3>
-                <p className="manga-description">{manga.description}</p>
-
-                <div className="tags">
-                  {manga.tags.map(tag => (
-                    <span key={tag} className="tag">#{tag}</span>
-                  ))}
-                </div>
-
-                {manga.isReal && (
-                  <div className="affiliate-links">
-                    <a
-                      href={getAmazonLink(manga.title)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button amazon-btn"
-                    >
-                      <ShoppingCart size={18} style={{ marginRight: '8px' }} />
-                      Amazonで探す
-                    </a>
-                    <a
-                      href={getRakutenLink(manga.title)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="button rakuten-btn"
-                    >
-                      <ExternalLink size={18} style={{ marginRight: '8px' }} />
-                      楽天で探す
-                    </a>
-                    <p className="trust-badge">※各プラットフォームの正規ページへ移動します</p>
+        <section className="results-section">
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', opacity: 0.8 }}>
+            {query ? `「${query}」の検索結果 (${results.length}件)` : "おすすめの作品"}
+          </h2>
+          <div className="manga-grid">
+            <AnimatePresence mode="popLayout">
+              {results.map((manga) => (
+                <motion.article
+                  key={manga.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                  className="manga-card"
+                >
+                  <div className="manga-cover-wrapper">
+                    {manga.cover ? (
+                      <img
+                        src={manga.cover}
+                        alt={`${manga.title}の表紙`}
+                        className="manga-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="manga-cover-placeholder">
+                        <span>No Image</span>
+                      </div>
+                    )}
+                    <div className="manga-rating">
+                      <Star size={14} fill="currentColor" />
+                      <span>{manga.rating}</span>
+                    </div>
                   </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+
+                  <div className="manga-info">
+                    <h3 className="manga-title">{manga.title}</h3>
+                    <p className="manga-author">{manga.author}</p>
+                    <p className="manga-description">
+                      {manga.description.length > 80
+                        ? manga.description.substring(0, 80) + "..."
+                        : manga.description}
+                    </p>
+                    <div className="manga-tags">
+                      {manga.tags.map(tag => (
+                        <span key={tag} className="tag">{tag}</span>
+                      ))}
+                    </div>
+
+                    {manga.isReal && (
+                      <div className="affiliate-links">
+                        <a
+                          href={getAmazonLink(manga.title)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aff-btn amazon"
+                        >
+                          Amazonで探す
+                        </a>
+                        <a
+                          href={getRakutenLink(manga.title)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aff-btn rakuten"
+                        >
+                          楽天で探す
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </motion.article>
+              ))}
+            </AnimatePresence>
+          </div>
+        </section>
       </main>
 
       <footer>
