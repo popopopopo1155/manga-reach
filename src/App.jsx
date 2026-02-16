@@ -21,10 +21,20 @@ function App() {
 
   const fuse = useMemo(() => new Fuse(mangaData, fuseOptions), []);
 
+  // SEO/Curation logic: Extract meaningful subsets
+  const featured = useMemo(() => {
+    const sorted = [...mangaData].sort((a, b) => b.rating - a.rating);
+    return {
+      trending: mangaData.slice(20, 28), // Recent/Active ones
+      hallOfFame: sorted.slice(0, 8),     // Top rated
+      fantasy: mangaData.filter(m => m.tags.includes('ファンタジー')).slice(0, 8)
+    };
+  }, []);
+
   useEffect(() => {
     console.log("Manga Reach: Data Loaded.", mangaData.length, "items");
     if (!query) {
-      setResults(mangaData.slice(0, 16));
+      setResults(mangaData.slice(0, 20));
       return;
     }
 
@@ -70,80 +80,63 @@ function App() {
       </header>
 
       <main className="container">
-        <section className="results-section">
+        {!query && (
+          <div className="curation-sections">
+            <section className="featured-group">
+              <div className="section-header">
+                <h2>🔥 今週のトレンド作品</h2>
+                <p>Manga Reachが今注目する、話題の作品をピックアップ</p>
+              </div>
+              <div className="manga-grid">
+                {featured.trending.map((manga) => (
+                  <MangaCard key={`trend-${manga.id}`} manga={manga} />
+                ))}
+              </div>
+            </section>
+
+            <section className="featured-group" style={{ marginTop: '4rem' }}>
+              <div className="section-header">
+                <h2>🏆 不朽の殿堂入り名作</h2>
+                <p>評価が高く、世代を超えて愛され続ける傑作たち</p>
+              </div>
+              <div className="manga-grid">
+                {featured.hallOfFame.map((manga) => (
+                  <MangaCard key={`hof-${manga.id}`} manga={manga} />
+                ))}
+              </div>
+            </section>
+
+            <section className="featured-group" style={{ marginTop: '4rem' }}>
+              <div className="section-header">
+                <h2>✨ 人気のファンタジー作品</h2>
+                <p>圧倒的な世界観に浸れる、珠玉のファンタジーマンガ</p>
+              </div>
+              <div className="manga-grid">
+                {featured.fantasy.map((manga) => (
+                  <MangaCard key={`fan-${manga.id}`} manga={manga} />
+                ))}
+              </div>
+            </section>
+
+            <div className="seo-text-block">
+              <h3>10,000作品から見つかる、究極のマンガ発見体験</h3>
+              <p>
+                Manga Reachは、実在するマンガ1万作品以上のデータベースから、あなたの「読みたい」を瞬時に引き出します。
+                アクション、ファンタジー、恋愛、サスペンスなど、あらゆるジャンルを網羅。最新の書影とあらすじを確認し、
+                Amazonや楽天でスムーズにチェックできます。
+              </p>
+            </div>
+          </div>
+        )}
+
+        <section className="results-section" style={{ marginTop: !query ? '4rem' : '0' }}>
           <h2 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', opacity: 0.8 }}>
-            {query ? `「${query}」の検索結果 (${results.length}件)` : "おすすめの作品"}
+            {query ? `「${query}」の検索結果 (${results.length}件)` : "🔍 全作品から探す"}
           </h2>
           <div className="manga-grid">
             <AnimatePresence mode="popLayout">
               {results.map((manga, index) => (
-                <motion.article
-                  key={manga.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4, delay: (index % 10) * 0.05 }}
-                  className="manga-card glass"
-                >
-                  <div className="cover-container">
-                    {manga.cover ? (
-                      <img
-                        src={manga.cover}
-                        alt={`${manga.title}の表紙`}
-                        className="manga-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="manga-cover-placeholder">
-                        <span>No Image</span>
-                      </div>
-                    )}
-                    <div className="rating">
-                      <Star size={14} fill="#fbbf24" stroke="none" />
-                      <span>{manga.rating}</span>
-                    </div>
-                  </div>
-
-                  <div className="card-content">
-                    <h3 className="manga-title">{manga.title}</h3>
-                    <p className="manga-author">{manga.author}</p>
-                    <p className="manga-description">
-                      {manga.description.length > 80
-                        ? manga.description.substring(0, 80) + "..."
-                        : manga.description}
-                    </p>
-                    <div className="tags">
-                      {manga.tags.map(tag => (
-                        <span key={tag} className="tag">#{tag}</span>
-                      ))}
-                    </div>
-
-                    {manga.isReal && (
-                      <div className="affiliate-links">
-                        <a
-                          href={getAmazonLink(manga.title)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="button amazon-btn"
-                        >
-                          <ShoppingCart size={18} style={{ marginRight: '8px' }} />
-                          Amazonで探す
-                        </a>
-                        <a
-                          href={getRakutenLink(manga.title)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="button rakuten-btn"
-                        >
-                          <ExternalLink size={18} style={{ marginRight: '8px' }} />
-                          楽天で探す
-                        </a>
-                        <p className="trust-badge">※各ショップの正規ページへ移動します</p>
-                      </div>
-                    )}
-                  </div>
-                </motion.article>
+                <MangaCard key={`search-${manga.id}`} manga={manga} index={index} />
               ))}
             </AnimatePresence>
           </div>

@@ -306,3 +306,55 @@ footer {
     margin-right: 4px !important;
   }
 }
+
+/* Featured Sections & SEO Curation */
+.section-header {
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.section-header h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+}
+
+.section-header p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.seo-text-block {
+  margin-top: 6rem;
+  padding: 3rem;
+  background: rgba(30, 41, 59, 0.3);
+  border-radius: 24px;
+  border: 1px solid var(--glass-border);
+  text-align: left;
+}
+
+.seo-text-block h3 {
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #a5b4fc 0%, #f43f5e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.seo-text-block p {
+  color: var(--text-muted);
+  line-height: 1.8;
+  font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+  .section-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .seo-text-block {
+    padding: 1.5rem;
+    margin-top: 4rem;
+  }
+}
