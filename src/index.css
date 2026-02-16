@@ -240,38 +240,69 @@ footer {
 
 @media (max-width: 640px) {
   h1 {
-    font-size: 2.2rem;
+    font-size: 2.1rem;
+    letter-spacing: -0.01em;
   }
 
   .container {
-    padding: 1.5rem 1rem;
+    padding: 1.2rem 0.8rem;
   }
 
   .search-box {
-    margin: 2rem 0;
+    margin: 1.5rem 0;
   }
 
   .search-input {
-    font-size: 1rem;
-    padding: 1rem 1rem 1rem 3.2rem;
+    font-size: 0.95rem;
+    padding: 0.9rem 1rem 0.9rem 3rem;
+    border-radius: 15px;
   }
 
   .search-icon {
-    left: 1.2rem;
-    width: 20px;
+    left: 1rem;
+    width: 18px;
   }
 
+  /* 2-column grid for mobile discovery */
   .manga-grid {
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .manga-title {
-    font-size: 1rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    /* Limit to 2 lines to keep height consistent */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-content {
+    padding: 0.8rem;
+  }
+
+  .manga-author,
+  .manga-description,
+  .tags {
+    display: none;
+    /* Hide secondary info in 2-column mobile view for clean look */
+  }
+
+  .affiliate-links {
+    gap: 0.4rem;
   }
 
   .button {
-    padding: 0.6rem;
-    font-size: 0.8rem;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .button svg {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px !important;
   }
 }
