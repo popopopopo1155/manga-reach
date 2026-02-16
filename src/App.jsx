@@ -90,13 +90,34 @@ function App() {
 
   const fuse = useMemo(() => new Fuse(mangaData, fuseOptions), []);
 
-  // SEO/Curation logic: Extract meaningful subsets
+  // SEO/Curation logic: High-accuracy subsets
   const featured = useMemo(() => {
-    const sorted = [...mangaData].sort((a, b) => b.rating - a.rating);
+    // 殿堂入りの名作リスト（1万件のデータから確実に見つけるためのキーワード）
+    const hofKeywords = ["ONE PIECE", "名探偵コナン", "SLAM DUNK", "ドラゴンボール", "NARUTO", "BLEACH", "進撃の巨人", "鋼の錬金術師", "HUNTER×HUNTER", "ジョジョ"];
+    // トレンド作品リスト
+    const trendKeywords = ["葬送のフリーレン", "呪術廻戦", "チェンソーマン", "ブルーロック", "僕のヒーローアカデミア", "怪獣8号", "ダンダダン", "SPY×FAMILY"];
+
+    const findBestMatches = (keywords) => {
+      const results = [];
+      keywords.forEach(kw => {
+        // 部分一致で検索し、最も評価が高い（または短いタイトル＝本編に近い）ものを選択
+        const matches = mangaData.filter(m => m.title.toLowerCase().includes(kw.toLowerCase()));
+        if (matches.length > 0) {
+          const best = matches.sort((a, b) => a.title.length - b.title.length || b.rating - a.rating)[0];
+          if (!results.some(r => r.id === best.id)) results.push(best);
+        }
+      });
+      return results;
+    };
+
+    const trendingList = findBestMatches(trendKeywords);
+    const hofList = findBestMatches(hofKeywords);
+    const sortedByRating = [...mangaData].sort((a, b) => b.rating - a.rating);
+
     return {
-      trending: mangaData.slice(20, 28), // Recent/Active ones
-      hallOfFame: sorted.slice(0, 8),     // Top rated
-      fantasy: mangaData.filter(m => m.tags.includes('ファンタジー')).slice(0, 8)
+      trending: trendingList.length >= 4 ? trendingList.slice(0, 8) : sortedByRating.slice(20, 28),
+      hallOfFame: hofList.length >= 4 ? hofList.slice(0, 8) : sortedByRating.slice(0, 8),
+      fantasy: mangaData.filter(m => m.tags.includes('ファンタジー') && m.rating >= 4.5).slice(0, 8)
     };
   }, []);
 
