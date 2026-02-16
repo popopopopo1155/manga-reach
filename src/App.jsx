@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import { Search, ExternalLink, ShoppingCart, Star } from 'lucide-react';
+import { Search, ExternalLink, ShoppingCart, Star, Info, ShieldCheck, Mail, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import mangaData from './data/mangaData.json';
+import { PrivacyPolicy, About } from './components/LegalPages';
 
 const RAKUTEN_AFFILIATE_ID = "5025407c.d8994699.5025407d.e9a413e7";
 const AMAZON_ASSOCIATE_ID = "mangaanimeosu-22";
@@ -79,6 +80,13 @@ const MangaCard = ({ manga, index }) => (
 function App() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [currentPage, setCurrentPage] = useState('home');
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+    if (page !== 'home') setQuery('');
+  };
 
   // Fuse.js options
   const fuseOptions = {
@@ -146,94 +154,144 @@ function App() {
   return (
     <div className="container">
       <header>
+        {currentPage !== 'home' && (
+          <button onClick={() => setCurrentPage('home')} className="back-btn glass">
+            <ArrowLeft size={18} /> 戻る
+          </button>
+        )}
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
+          onClick={() => handlePageChange('home')}
+          style={{ cursor: 'pointer' }}
         >
           Manga Reach（マンガ・リーチ）
         </motion.h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '0.5rem' }}>
-          10,000件以上のデータから、あなたにぴったりの一冊を。
-        </p>
+        {currentPage === 'home' && (
+          <>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '0.5rem' }}>
+              10,000件以上のデータから、あなたにぴったりの一冊を。
+            </p>
 
-        <div className="search-box">
-          <Search className="search-icon" size={24} />
-          <input
-            type="text"
-            className="search-input"
-            placeholder="海賊、巨人、魔法、アクション..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+            <div className="search-box">
+              <Search className="search-icon" size={24} />
+              <input
+                type="text"
+                className="search-input"
+                placeholder="海賊、巨人、魔法、アクション..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          </>
+        )}
       </header>
 
       <main className="container">
-        {!query && (
-          <div className="curation-sections">
-            <section className="featured-group">
-              <div className="section-header">
-                <h2>🔥 今週のトレンド作品</h2>
-                <p>Manga Reachが今注目する、話題の作品をピックアップ</p>
+        {currentPage === 'privacy' && <PrivacyPolicy />}
+        {currentPage === 'about' && <About />}
+
+        {currentPage === 'home' && (
+          <>
+            {!query && (
+              <div className="curation-sections">
+                <section className="featured-group">
+                  <div className="section-header">
+                    <h2>🔥 今週のトレンド作品</h2>
+                    <p>Manga Reachが今注目する、話題の作品をピックアップ</p>
+                  </div>
+                  <div className="manga-grid">
+                    {featured.trending.map((manga) => (
+                      <MangaCard key={`trend-${manga.id}`} manga={manga} />
+                    ))}
+                  </div>
+                </section>
+
+                <section className="featured-group" style={{ marginTop: '4rem' }}>
+                  <div className="section-header">
+                    <h2>🏆 不朽の殿堂入り名作</h2>
+                    <p>評価が高く、世代を超えて愛され続ける傑作たち</p>
+                  </div>
+                  <div className="manga-grid">
+                    {featured.hallOfFame.map((manga) => (
+                      <MangaCard key={`hof-${manga.id}`} manga={manga} />
+                    ))}
+                  </div>
+                </section>
+
+                {/* 広告シミュレート枠（AdSense審査用） */}
+                <div className="ad-placeholder-horizontal glass">
+                  <p>Sponsored Content</p>
+                  <span>ここに最適な広告が表示されます</span>
+                </div>
+
+                <section className="featured-group" style={{ marginTop: '4rem' }}>
+                  <div className="section-header">
+                    <h2>✨ 人気のファンタジー作品</h2>
+                    <p>圧倒的な世界観に浸れる、珠玉のファンタジーマンガ</p>
+                  </div>
+                  <div className="manga-grid">
+                    {featured.fantasy.map((manga) => (
+                      <MangaCard key={`fan-${manga.id}`} manga={manga} />
+                    ))}
+                  </div>
+                </section>
+
+                <div className="seo-text-block">
+                  <h3>10,000作品から見つかる、究極のマンガ発見体験</h3>
+                  <p>
+                    Manga Reachは、実在するマンガ1万作品以上のデータベースから、あなたの「読みたい」を瞬時に引き出します。
+                    アクション、ファンタジー、恋愛、サスペンスなど、あらゆるジャンルを網羅。最新の書影とあらすじを確認し、
+                    Amazonや楽天でスムーズにチェックできます。
+                  </p>
+                </div>
+
+                <section className="featured-group" style={{ marginTop: '5rem' }}>
+                  <div className="section-header">
+                    <h2>マガジン：Manga Reach編集部からのお知らせ</h2>
+                    <p>話題の新作情報、おすすめの特集、運営からのお役立ち情報をお届けします</p>
+                  </div>
+                  <div className="news-list glass" style={{ padding: '2rem' }}>
+                    <article className="news-item">
+                      <span className="news-date">2026.02.16</span>
+                      <h4 className="news-title">【特集】2026年春に見るべき「泣ける」漫画10選を公開しました</h4>
+                    </article>
+                    <article className="news-item">
+                      <span className="news-date">2026.02.15</span>
+                      <h4 className="news-title">データベース更新：新たに120作品の追加を行いました</h4>
+                    </article>
+                    <article className="news-item">
+                      <span className="news-date">2026.02.14</span>
+                      <h4 className="news-title">Manga Reachが正式オープン！1万件の検索機能が利用可能です</h4>
+                    </article>
+                  </div>
+                </section>
               </div>
+            )}
+
+            <section className="results-section" style={{ marginTop: !query ? '4rem' : '0' }}>
+              <h2 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', opacity: 0.8 }}>
+                {query ? `「${query}」の検索結果 (${results.length}件)` : "🔍 全作品から探す"}
+              </h2>
               <div className="manga-grid">
-                {featured.trending.map((manga) => (
-                  <MangaCard key={`trend-${manga.id}`} manga={manga} />
-                ))}
+                <AnimatePresence mode="popLayout">
+                  {results.map((manga, index) => (
+                    <MangaCard key={`search-${manga.id}`} manga={manga} index={index} />
+                  ))}
+                </AnimatePresence>
               </div>
             </section>
-
-            <section className="featured-group" style={{ marginTop: '4rem' }}>
-              <div className="section-header">
-                <h2>🏆 不朽の殿堂入り名作</h2>
-                <p>評価が高く、世代を超えて愛され続ける傑作たち</p>
-              </div>
-              <div className="manga-grid">
-                {featured.hallOfFame.map((manga) => (
-                  <MangaCard key={`hof-${manga.id}`} manga={manga} />
-                ))}
-              </div>
-            </section>
-
-            <section className="featured-group" style={{ marginTop: '4rem' }}>
-              <div className="section-header">
-                <h2>✨ 人気のファンタジー作品</h2>
-                <p>圧倒的な世界観に浸れる、珠玉のファンタジーマンガ</p>
-              </div>
-              <div className="manga-grid">
-                {featured.fantasy.map((manga) => (
-                  <MangaCard key={`fan-${manga.id}`} manga={manga} />
-                ))}
-              </div>
-            </section>
-
-            <div className="seo-text-block">
-              <h3>10,000作品から見つかる、究極のマンガ発見体験</h3>
-              <p>
-                Manga Reachは、実在するマンガ1万作品以上のデータベースから、あなたの「読みたい」を瞬時に引き出します。
-                アクション、ファンタジー、恋愛、サスペンスなど、あらゆるジャンルを網羅。最新の書影とあらすじを確認し、
-                Amazonや楽天でスムーズにチェックできます。
-              </p>
-            </div>
-          </div>
+          </>
         )}
-
-        <section className="results-section" style={{ marginTop: !query ? '4rem' : '0' }}>
-          <h2 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', opacity: 0.8 }}>
-            {query ? `「${query}」の検索結果 (${results.length}件)` : "🔍 全作品から探す"}
-          </h2>
-          <div className="manga-grid">
-            <AnimatePresence mode="popLayout">
-              {results.map((manga, index) => (
-                <MangaCard key={`search-${manga.id}`} manga={manga} index={index} />
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
       </main>
 
       <footer>
+        <div className="footer-links">
+          <button onClick={() => handlePageChange('home')}>トップ</button>
+          <button onClick={() => handlePageChange('about')}>当サイトについて</button>
+          <button onClick={() => handlePageChange('privacy')}>プライバシーポリシー</button>
+        </div>
         <p>&copy; 2026 Manga Reach（マンガ・リーチ）. 全著作権所有.</p>
         <p style={{ fontSize: '0.75rem', marginTop: '1.5rem', opacity: 0.7 }}>
           当サイトは、Amazon.co.jpアソシエイトおよび楽天アフィリエイト・プログラムの参加者です。<br />
