@@ -7,6 +7,75 @@ import mangaData from './data/mangaData.json';
 const RAKUTEN_AFFILIATE_ID = "5025407c.d8994699.5025407d.e9a413e7";
 const AMAZON_ASSOCIATE_ID = "mangaanimeosu-22";
 
+// 共通のカードコンポーネント
+const MangaCard = ({ manga, index }) => (
+  <motion.article
+    layout
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.9 }}
+    transition={{ duration: 0.3, delay: index ? (index % 10) * 0.05 : 0 }}
+    className="manga-card glass"
+  >
+    <div className="cover-container">
+      {manga.cover ? (
+        <img
+          src={manga.cover}
+          alt={`${manga.title}の表紙`}
+          className="manga-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="manga-cover-placeholder">
+          <span>No Image</span>
+        </div>
+      )}
+      <div className="rating">
+        <Star size={14} fill="#fbbf24" stroke="none" />
+        <span>{manga.rating}</span>
+      </div>
+    </div>
+
+    <div className="card-content">
+      <h3 className="manga-title">{manga.title}</h3>
+      <p className="manga-author">{manga.author}</p>
+      <p className="manga-description">
+        {manga.description.length > 80
+          ? manga.description.substring(0, 80) + "..."
+          : manga.description}
+      </p>
+      <div className="tags">
+        {manga.tags.map(tag => (
+          <span key={tag} className="tag">#{tag}</span>
+        ))}
+      </div>
+
+      {manga.isReal && (
+        <div className="affiliate-links">
+          <a
+            href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " 漫画")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A466280`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button amazon-btn"
+          >
+            <ShoppingCart size={18} style={{ marginRight: '8px' }} />
+            Amazonで探す
+          </a>
+          <a
+            href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/200162/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button rakuten-btn"
+          >
+            <ExternalLink size={18} style={{ marginRight: '8px' }} />
+            楽天で探す
+          </a>
+        </div>
+      )}
+    </div>
+  </motion.article>
+);
+
 function App() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
