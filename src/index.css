@@ -240,10 +240,38 @@ footer {
 
 @media (max-width: 640px) {
   h1 {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
   }
 
   .container {
-    padding: 1rem;
+    padding: 1.5rem 1rem;
+  }
+
+  .search-box {
+    margin: 2rem 0;
+  }
+
+  .search-input {
+    font-size: 1rem;
+    padding: 1rem 1rem 1rem 3.2rem;
+  }
+
+  .search-icon {
+    left: 1.2rem;
+    width: 20px;
+  }
+
+  .manga-grid {
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  .manga-title {
+    font-size: 1rem;
+  }
+
+  .button {
+    padding: 0.6rem;
+    font-size: 0.8rem;
   }
 }
