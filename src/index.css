@@ -36,9 +36,11 @@ body {
 
 /* Base Container */
 .container {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: 1.5rem 10vw;
+  /* 圧倒的な余白感。画面幅の10%を強制的に空白に。 */
+  width: 100%;
 }
 
 /* Header & Search */
@@ -123,8 +125,8 @@ h1 {
 /* Manga Grid */
 .manga-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 2.2rem;
 }
 
 .manga-card {
@@ -592,7 +594,8 @@ footer {
 
 @media (max-width: 640px) {
   .container {
-    padding: 1rem;
+    padding: 1rem 5vw;
+    /* スマホでも確実に5%の余白を確保 */
   }
 
   header {
