@@ -36,10 +36,9 @@ body {
 
 /* Base Container */
 .container {
-  max-width: 1000px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 1.5rem 10vw;
-  /* 圧倒的な余白感。画面幅の10%を強制的に空白に。 */
+  padding: 1.5rem 5vw;
   width: 100%;
 }
 
