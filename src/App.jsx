@@ -54,22 +54,40 @@ const MangaCard = ({ manga, index }) => (
       {manga.isReal && (
         <div className="affiliate-links">
           <a
+            href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " Kindle版")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A2250762051`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button kindle-btn"
+            title="Amazon Kindle (電子書籍)"
+          >
+            Kindle版
+          </a>
+          <a
+            href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/101227/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="button kobo-btn"
+            title="楽天Kobo (電子書籍)"
+          >
+            楽天Kobo
+          </a>
+          <a
             href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " 漫画")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A466280`}
             target="_blank"
             rel="noopener noreferrer"
             className="button amazon-btn"
+            title="Amazon.co.jp (物理書籍)"
           >
-            <ShoppingCart size={18} style={{ marginRight: '8px' }} />
-            Amazonで探す
+            Amazon
           </a>
           <a
             href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/200162/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
             target="_blank"
             rel="noopener noreferrer"
             className="button rakuten-btn"
+            title="楽天市場 (物理書籍)"
           >
-            <ExternalLink size={18} style={{ marginRight: '8px' }} />
-            楽天で探す
+            楽天
           </a>
         </div>
       )}
@@ -140,14 +158,22 @@ function App() {
     setResults(searchResults.map(result => result.item).slice(0, 40));
   }, [query, fuse]);
 
-  // アフィリエイトリンクの最適化（漫画カテゴリを指定）
+  // アフィリエイトリンクの最適化
+  const getKindleLink = (title) => {
+    // rh=n:2250762051 は「Kindleストア > Kindle本 > マンガ」のカテゴリID
+    return `https://www.amazon.co.jp/s?k=${encodeURIComponent(title + " Kindle版")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A2250762051`;
+  };
+
+  const getKoboLink = (title) => {
+    // 101227 は「楽天Kobo電子書籍ストア」のジャンルID
+    return `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(title)}/101227/?affiliateId=${RAKUTEN_AFFILIATE_ID}`;
+  };
+
   const getAmazonLink = (title) => {
-    // rh=n:466280 は「本 > コミック・ラノベ・BL」のカテゴリID
     return `https://www.amazon.co.jp/s?k=${encodeURIComponent(title + " 漫画")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A466280`;
   };
 
   const getRakutenLink = (title) => {
-    // 200162 は「本・雑誌・コミック」のジャンルID
     return `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(title)}/200162/?affiliateId=${RAKUTEN_AFFILIATE_ID}`;
   };
 

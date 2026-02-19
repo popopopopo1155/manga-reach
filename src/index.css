@@ -172,23 +172,38 @@ h1 {
   border-radius: 4px;
 }
 
-/* Affiliate Buttons */
+/* Affiliate Buttons - Grid Layout */
 .affiliate-links {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
 }
 
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.8rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
+  padding: 0.6rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
   font-weight: 700;
   text-decoration: none;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
+  min-width: 0;
+  /* Prevent overflow */
+  white-space: nowrap;
+}
+
+.kindle-btn {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.kobo-btn {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .amazon-btn {
@@ -204,8 +219,9 @@ h1 {
 }
 
 .button:hover {
-  filter: brightness(1.05);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Badge for Trust */
