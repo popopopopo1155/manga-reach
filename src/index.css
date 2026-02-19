@@ -36,10 +36,9 @@ body {
 
 /* Base Container */
 .container {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem 5vw;
-  /* 左右の余白を画面幅に応じた割合に拡大 */
+  padding: 1.5rem 2rem;
 }
 
 /* Header & Search */
@@ -124,10 +123,8 @@ h1 {
 /* Manga Grid */
 .manga-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  /* カードサイズを拡大し1行の枚数を抑制 */
-  gap: 2.5rem;
-  /* アイテム間の余白を拡大 */
+  grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+  gap: 2rem;
 }
 
 .manga-card {
