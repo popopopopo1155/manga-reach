@@ -63,10 +63,14 @@ const TagPage = () => {
 
   useEffect(() => {
     document.title = `${tagName}のおすすめ漫画ランキング - Manga Reach`;
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute('content', `${tagName}タグの付いた人気漫画をランキング形式で紹介。${filteredManga.slice(0, 3).map(m => m.title).join('、')}など、最高品質のデータから運命の一冊を探そう。`);
-    }
+    const updateMeta = (selector, content) => {
+      const el = document.querySelector(selector);
+      if (el) el.setAttribute('content', content);
+    };
+    const descript = `${tagName}タグの付いた人気漫画をランキング形式で紹介。${filteredManga.slice(0, 3).map(m => m.title).join('、')}など、最高品質のデータから運命の一冊を探そう。`;
+    updateMeta('meta[name="description"]', descript);
+    updateMeta('meta[property="og:title"]', `${tagName} のおすすめ漫画ランキング - Manga Reach`);
+    updateMeta('meta[property="og:description"]', descript);
     window.scrollTo(0, 0);
   }, [tagName, filteredManga]);
 
@@ -130,14 +134,38 @@ const MangaDetail = () => {
     if (manga) {
       document.title = `${manga.title} - Manga Reach (マンガ・リーチ) | 究極のマンガ検索`;
 
-      // Meta description 動的変更
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute('content', `${manga.title}（${manga.author}）のあらすじ、評価、レビューをチェック。KindleやKoboなどの電子書籍から紙の本まで、最安値・最新情報を網羅。`);
-      }
+      // メタタグを動的に更新
+      const updateMeta = (selector, content) => {
+        const el = document.querySelector(selector);
+        if (el) el.setAttribute('content', content);
+      };
+
+      const descript = `${manga.title}（${manga.author}）のあらすじ、評価、レビューをチェック。KindleやKoboなどの電子書籍から紙の本まで、最安値・最新情報を網羅。`;
+
+      updateMeta('meta[name="description"]', descript);
+      updateMeta('meta[property="og:title"]', `${manga.title} - Manga Reach`);
+      updateMeta('meta[property="og:description"]', descript);
+      updateMeta('meta[property="og:image"]', manga.cover);
+      updateMeta('meta[property="twitter:title"]', `${manga.title} - Manga Reach`);
+      updateMeta('meta[property="twitter:description"]', descript);
+      updateMeta('meta[property="twitter:image"]', manga.cover);
     }
     window.scrollTo(0, 0);
   }, [id, manga]);
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${manga.title} - Manga Reach`,
+        text: `マンガ・リーチで「${manga.title}」をチェック！1万件のデータから運命の一冊が見つかる。`,
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      // Fallback: Copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      alert('URLをコピーしました！SNSでシェアしてください。');
+    }
+  };
 
   if (!manga) return (
     <div className="container" style={{ textAlign: 'center', padding: '10rem 2rem' }}>
@@ -171,7 +199,12 @@ const MangaDetail = () => {
         </div>
 
         <div className="detail-main">
-          <h1 className="detail-title">{manga.title}</h1>
+          <div className="detail-title-row">
+            <h1 className="detail-title">{manga.title}</h1>
+            <button onClick={handleShare} className="share-btn" title="シェアする">
+              <Share2 size={20} />
+            </button>
+          </div>
           <p className="detail-author">{manga.author}</p>
 
           <div className="detail-tags">
