@@ -161,6 +161,15 @@ h1 {
   overflow: hidden;
   transition: var(--transition-smooth);
   height: 100%;
+  cursor: pointer;
+}
+
+.card-link-wrapper {
+  text-decoration: none !important;
+  color: inherit !important;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .manga-card:hover {
