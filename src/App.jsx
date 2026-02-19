@@ -207,7 +207,7 @@ const MangaDetail = () => {
 
 // ホーム（一覧ページ）
 const HomePage = ({ query, setQuery, results }) => (
-  <>
+  <div className="container">
     <header>
       <div className="logo-container">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
@@ -241,7 +241,7 @@ const HomePage = ({ query, setQuery, results }) => (
         </div>
       )}
     </main>
-  </>
+  </div>
 );
 
 function App() {
