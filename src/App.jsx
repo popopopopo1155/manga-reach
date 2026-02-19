@@ -106,6 +106,26 @@ const MangaDetail = () => {
   const navigate = useNavigate();
   const manga = useMemo(() => mangaData.find(m => m.id.toString() === id), [id]);
 
+  const relatedManga = useMemo(() => {
+    if (!manga) return [];
+    return mangaData
+      .filter(m => m.id !== manga.id)
+      .map(m => {
+        let score = 0;
+        // 著者が同じなら大幅加点
+        if (m.author === manga.author) score += 10;
+        // 共通タグ1つにつき加点
+        const commonTags = m.tags?.filter(t => manga.tags?.includes(t)) || [];
+        score += commonTags.length * 3;
+        // レーティングも加味 (人気順)
+        score += m.rating * 0.5;
+        return { item: m, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map(entry => entry.item);
+  }, [manga]);
+
   useEffect(() => {
     if (manga) {
       document.title = `${manga.title} - Manga Reach (マンガ・リーチ) | 究極のマンガ検索`;
@@ -203,6 +223,22 @@ const MangaDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* レコメンドセクション */}
+      <section className="related-section">
+        <div className="related-header">
+          <History size={24} className="related-icon" />
+          <div className="related-text">
+            <h2>あなたにおすすめの関連作品</h2>
+            <p>この作品をチェックしたユーザーは、こちらもの作品も見ています</p>
+          </div>
+        </div>
+        <div className="manga-grid">
+          {relatedManga.map((m, idx) => (
+            <MangaCard key={m.id} manga={m} index={idx} />
+          ))}
+        </div>
+      </section>
     </motion.div>
   );
 };
