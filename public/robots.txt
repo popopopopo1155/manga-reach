@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://manga-reach.vercel.app/sitemap.xml
+Sitemap: https://manga-reach.com/sitemap.xml

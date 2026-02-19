@@ -12,11 +12,11 @@ const AMAZON_ASSOCIATE_ID = "mangaanimeosu-22";
 const MangaCard = ({ manga, index }) => (
   <motion.article
     layout
-    initial={{ opacity: 0, scale: 0.9 }}
+    initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.9 }}
-    transition={{ duration: 0.3, delay: index ? (index % 10) * 0.05 : 0 }}
-    className="manga-card glass"
+    exit={{ opacity: 0, scale: 0.95 }}
+    transition={{ duration: 0.3, delay: index ? (index % 10) * 0.03 : 0 }}
+    className="manga-card"
   >
     <div className="cover-container">
       {manga.cover ? (
@@ -31,64 +31,61 @@ const MangaCard = ({ manga, index }) => (
           <span>No Image</span>
         </div>
       )}
-      <div className="rating">
-        <Star size={14} fill="#fbbf24" stroke="none" />
-        <span>{manga.rating}</span>
+      <div className="rating-overlay">
+        <Star size={10} fill="#fbbf24" stroke="none" />
+        {manga.rating}
       </div>
     </div>
 
     <div className="card-content">
-      <h3 className="manga-title">{manga.title}</h3>
+      <h3 className="manga-title" title={manga.title}>{manga.title}</h3>
       <p className="manga-author">{manga.author}</p>
-      <p className="manga-description">
-        {manga.description.length > 80
-          ? manga.description.substring(0, 80) + "..."
-          : manga.description}
+
+      <p className="manga-description-compact">
+        {manga.description}
       </p>
-      <div className="tags">
-        {manga.tags.map(tag => (
-          <span key={tag} className="tag">#{tag}</span>
-        ))}
-      </div>
 
       {manga.isReal && (
-        <div className="affiliate-links">
-          <a
-            href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " Kindle版")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A2250762051`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="button kindle-btn"
-            title="Amazon Kindle (電子書籍)"
-          >
-            Kindle版
-          </a>
-          <a
-            href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/101227/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="button kobo-btn"
-            title="楽天Kobo (電子書籍)"
-          >
-            楽天Kobo
-          </a>
-          <a
-            href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " 漫画")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A466280`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="button amazon-btn"
-            title="Amazon.co.jp (物理書籍)"
-          >
-            Amazon
-          </a>
-          <a
-            href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/200162/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="button rakuten-btn"
-            title="楽天市場 (物理書籍)"
-          >
-            楽天
-          </a>
+        <div className="affiliate-section">
+          <div className="link-group-label">電子書籍</div>
+          <div className="affiliate-grid">
+            <a
+              href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " Kindle版")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A2250762051`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mini-btn btn-kindle"
+            >
+              Kindle
+            </a>
+            <a
+              href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/101227/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mini-btn btn-kobo"
+            >
+              Kobo
+            </a>
+          </div>
+
+          <div className="link-group-label">紙の本</div>
+          <div className="affiliate-grid">
+            <a
+              href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " 漫画")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A466280`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mini-btn btn-amazon"
+            >
+              Amazon
+            </a>
+            <a
+              href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/200162/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mini-btn btn-rakuten"
+            >
+              楽天
+            </a>
+          </div>
         </div>
       )}
     </div>
