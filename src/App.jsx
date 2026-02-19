@@ -43,7 +43,9 @@ const MangaCard = ({ manga, index }) => (
         <h3 className="manga-title" title={manga.title}>{manga.title}</h3>
         <p className="manga-author">{manga.author}</p>
         <div className="card-footer-info">
-          <span className="info-badge">詳細を見る</span>
+          <span className="info-badge">
+            <Info size={14} /> 詳細を見る
+          </span>
         </div>
       </div>
     </Link>

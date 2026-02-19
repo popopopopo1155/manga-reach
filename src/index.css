@@ -211,10 +211,40 @@ h1 {
 }
 
 .card-content {
-  padding: 0.85rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+}
+
+.card-footer-info {
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.info-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  color: var(--text-main);
+  font-size: 0.85rem;
+  font-weight: 800;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.manga-card:hover .info-badge {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+  box-shadow: 0 8px 20px -5px var(--primary-glow);
+  transform: translateY(-2px);
 }
 
 .manga-title {
