@@ -36,9 +36,11 @@ body {
 
 /* Base Container */
 .container {
-  max-width: 1400px;
+  max-width: 1540px;
+  /* 6列 + 余白を余裕を持って収めるための最適値 */
   margin: 0 auto;
-  padding: 1.5rem 5vw;
+  padding: 1.5rem 6vw;
+  /* 確実に余白を感じられるプロフェッショナルな設定 */
   width: 100%;
 }
 
@@ -121,11 +123,32 @@ h1 {
   color: var(--primary);
 }
 
-/* Manga Grid */
 .manga-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-  gap: 1.8rem;
+  grid-template-columns: repeat(2, 1fr);
+  /* デフォルト（モバイル）は2列 */
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .manga-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .manga-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .manga-grid {
+    grid-template-columns: repeat(6, 1fr);
+    /* デスクトップで確実な6列表示を保証 */
+    gap: 2.22rem;
+  }
 }
 
 .manga-card {
