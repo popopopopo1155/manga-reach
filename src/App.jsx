@@ -319,6 +319,16 @@ function App() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
 
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => console.log('SW registered:', registration))
+          .catch(error => console.log('SW registration failed:', error));
+      });
+    }
+  }, []);
+
   const fuse = useMemo(() => new Fuse(mangaData, {
     keys: ['title', 'author', 'description', 'tags'],
     threshold: 0.35,
