@@ -50,15 +50,72 @@ const MangaCard = ({ manga, index }) => (
   </motion.article>
 );
 
-// 作品詳細ページコンポーネント
+// タグ別一覧ページ
+const TagPage = () => {
+  const { tagName } = useParams();
+  const navigate = useNavigate();
+
+  const filteredManga = useMemo(() => {
+    return mangaData.filter(m => m.tags?.includes(tagName)).sort((a, b) => b.rating - a.rating);
+  }, [tagName]);
+
+  useEffect(() => {
+    document.title = `${tagName}のおすすめ漫画ランキング - Manga Reach`;
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', `${tagName}タグの付いた人気漫画をランキング形式で紹介。${filteredManga.slice(0, 3).map(m => m.title).join('、')}など、最高品質のデータから運命の一冊を探そう。`);
+    }
+    window.scrollTo(0, 0);
+  }, [tagName, filteredManga]);
+
+  return (
+    <div className="container pt-layout">
+      <div className="tag-header">
+        <button className="back-btn" onClick={() => navigate('/')}>
+          <ArrowLeft size={18} /> ホームに戻る
+        </button>
+        <h1 className="tag-page-title">
+          <span className="hash">#</span>{tagName} <span className="count">({filteredManga.length}作品)</span>
+        </h1>
+        <p className="tag-page-subtitle">「{tagName}」に関連する最高評価の作品を厳選しました。</p>
+      </div>
+
+      <main>
+        <div className="manga-grid">
+          <AnimatePresence mode="popLayout">
+            {filteredManga.map((manga, idx) => (
+              <MangaCard key={manga.id} manga={manga} index={idx} />
+            ))}
+          </AnimatePresence>
+        </div>
+        {filteredManga.length === 0 && (
+          <div className="no-results">
+            <p>このタグに一致する作品は見つかりませんでした。</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+// 作品詳細ページコンポーネント (タグをクリック可能に修正)
 const MangaDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const manga = useMemo(() => mangaData.find(m => m.id.toString() === id), [id]);
 
   useEffect(() => {
+    if (manga) {
+      document.title = `${manga.title} - Manga Reach (マンガ・リーチ) | 究極のマンガ検索`;
+
+      // Meta description 動的変更
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', `${manga.title}（${manga.author}）のあらすじ、評価、レビューをチェック。KindleやKoboなどの電子書籍から紙の本まで、最安値・最新情報を網羅。`);
+      }
+    }
     window.scrollTo(0, 0);
-  }, [id]);
+  }, [id, manga]);
 
   if (!manga) return (
     <div className="container" style={{ textAlign: 'center', padding: '10rem 2rem' }}>
@@ -97,7 +154,7 @@ const MangaDetail = () => {
 
           <div className="detail-tags">
             {manga.tags?.map(tag => tag && (
-              <span key={tag} className="tag-badge">#{tag}</span>
+              <Link key={tag} to={`/tag/${tag}`} className="tag-badge clickable">#{tag}</Link>
             ))}
           </div>
 
@@ -200,6 +257,12 @@ function App() {
   useEffect(() => {
     if (!query) {
       setResults(mangaData.slice(0, 60));
+      // ホームページに戻った時にタイトルをリセット
+      document.title = "Manga Reach（マンガ・リーチ） - 日本最大級の1万件から見つかる究極の漫画検索ツール";
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', "Manga Reach（マンガ・リーチ）は、1万件以上の実在する漫画データから、あなたにぴったりの一冊を瞬時に見つけることができる最強の検索ツールです。");
+      }
       return;
     }
     const filtered = fuse.search(query).map(r => r.item);
@@ -212,6 +275,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage query={query} setQuery={setQuery} results={results} />} />
           <Route path="/manga/:id" element={<MangaDetail />} />
+          <Route path="/tag/:tagName" element={<TagPage />} />
           <Route path="/about" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><About /></div>} />
           <Route path="/privacy" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><PrivacyPolicy /></div>} />
         </Routes>

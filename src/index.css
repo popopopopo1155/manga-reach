@@ -490,14 +490,62 @@ h1 {
   color: var(--text-secondary);
 }
 
-.app-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* Tag Page Styles */
+.tag-header {
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: 24px;
 }
 
-footer {
-  margin-top: auto;
+.tag-page-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tag-page-title .hash {
+  color: var(--accent-primary);
+  opacity: 0.5;
+}
+
+.tag-page-title .count {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.tag-page-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.tag-badge.clickable {
+  cursor: pointer;
+  transition: all 0.3s var(--ease-out);
+}
+
+.tag-badge.clickable:hover {
+  background: var(--accent-primary);
+  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(var(--accent-primary-rgb), 0.3);
+}
+
+.pt-layout {
+  padding-top: 100px;
+}
+
+@media (max-width: 600px) {
+  .tag-page-title {
+    font-size: 1.8rem;
+  }
 }
 
 /* Badge for Trust */
