@@ -82,14 +82,18 @@ def generate_manga_data():
     print("Collecting high-quality Manga data (100% Full Power)...", flush=True)
     
     # 1. Kobo (Electronic) API - Priority for images
+    # ソート順を reviewCount に変更し、メタデータが安定している（＝多くの読者が既に接している）作品を優先
     for gid in kobo_genres:
-        print(f"--- Fetching Kobo Genre:{gid} ---", flush=True)
-        for p in range(1, 101): # ページ上限拡張
-            items = fetch_rakuten_data(KOBO_BASE_URL, genre_id=gid, page=p)
+        print(f"--- Fetching Kobo Genre:{gid} (ReviewCount Sort) ---", flush=True)
+        for p in range(1, 101):
+            items = fetch_rakuten_data(KOBO_BASE_URL, genre_id=gid, sort_method="reviewCount", page=p)
             if not items: break
             for item in items:
                 m = item.get("Item", {})
                 bt = clean_title(m.get("title", ""))
+                # 最新作のメタデータ未実装を避けるため、説明文(caption)がないものはスキップ
+                if not m.get("itemCaption") or len(m.get("itemCaption")) < 20:
+                    continue
                 if bt not in series_map: series_map[bt] = []
                 m["_source"] = "Kobo"
                 series_map[bt].append(m)
@@ -98,16 +102,18 @@ def generate_manga_data():
             time.sleep(0.01)
         if len(series_map) > 13000: break
 
-    # 1.5 Kobo + Keywords
+    # 1.5 Kobo + Keywords (ReviewCount Sort)
     if len(series_map) < 10000:
         for kw in target_keywords:
             print(f"--- Fetching Kobo Keyword:{kw} ---", flush=True)
-            for p in range(1, 51):
-                items = fetch_rakuten_data(KOBO_BASE_URL, keyword=kw, page=p)
+            for p in range(1, 41):
+                items = fetch_rakuten_data(KOBO_BASE_URL, keyword=kw, sort_method="reviewCount", page=p)
                 if not items: break
                 for item in items:
                     m = item.get("Item", {})
                     bt = clean_title(m.get("title", ""))
+                    if not m.get("itemCaption") or len(m.get("itemCaption")) < 20:
+                        continue
                     if bt not in series_map: series_map[bt] = []
                     m["_source"] = "Kobo"
                     series_map[bt].append(m)
@@ -115,16 +121,18 @@ def generate_manga_data():
                 time.sleep(0.01)
             if len(series_map) > 13000: break
 
-    # 2. Books (Physical) API - Fallback
+    # 2. Books (Physical) API - Fallback (ReviewCount Sort)
     if len(series_map) < 11000:
-        print("Filling gaps with Books API...", flush=True)
+        print("Filling gaps with Books API (Stable entries only)...", flush=True)
         for gid in book_genres:
             for p in range(1, 41):
-                items = fetch_rakuten_data(BOOKS_BASE_URL, genre_id=gid, page=p)
+                items = fetch_rakuten_data(BOOKS_BASE_URL, genre_id=gid, sort_method="reviewCount", page=p)
                 if not items: break
                 for item in items:
                     m = item.get("Item", {})
                     bt = clean_title(m.get("title", ""))
+                    if not m.get("itemCaption") or len(m.get("itemCaption")) < 20:
+                        continue
                     if bt not in series_map: series_map[bt] = []
                     m["_source"] = "Books"
                     series_map[bt].append(m)
@@ -135,22 +143,46 @@ def generate_manga_data():
     print(f"Refining {len(series_map)} series for maximum quality...", flush=True)
     
     for base_title, volumes in series_map.items():
+        # シリーズ内の巻数を推測するためにタイトルでソート
+        # 通常、楽天のタイトルは「作品名 1」「作品名 2」や「作品名（１）」など
+        volumes.sort(key=lambda x: x.get("title", ""))
+        
         candidates = []
-        for v in volumes:
+        num_vols = len(volumes)
+        
+        for idx, v in enumerate(volumes):
             url = v.get("largeImageUrl", "")
             if not url: continue
             
             score = 0
             src = v.get("_source")
-            is_placeholder = any(x in url.lower() for x in ["noimage", "comingsoon", "substitution", "nowait", "準備中", "cabinet/img/"])
+            vt = v.get("title", "")
             
-            if src == "Kobo": score += 5000 # Kobo画像を最優先 (美麗)
-            if not is_placeholder: score += 1000
+            # 白い画像やプレースホルダーの徹底排除
+            is_placeholder = any(x in url.lower() for x in [
+                "noimage", "comingsoon", "substitution", "nowait", 
+                "準備中", "cabinet/img/", "common/img/", "dummy"
+            ])
+            if is_placeholder: score -= 10000
             
+            if src == "Kobo": score += 5000 
+            
+            # --- 最新刊回避ロジック ---
+            # 1巻目(idx=0)を最強の候補とする（作品の顔であり、画像が最も安定している）
+            if idx == 0 and (" 1" in vt or " １" in vt or "（１）" in vt or "(1)" in vt):
+                score += 3000
+            
+            # 最新刊(idx == num_vols-1)は、複数巻ある場合のみ避ける
+            if num_vols > 1 and idx == num_vols - 1:
+                score -= 2000 # 最新刊の優先度を下げる（画像未実装リスク回避）
+            
+            # 最新刊の1つ前(idx == num_vols-2)は比較的安全かつ最新に近い
+            if num_vols > 2 and idx == num_vols - 2:
+                score += 1000
+                
             # KoboはURL引数でさらに高解像度にできる
             final_url = url
             if src == "Kobo":
-                # 電子版は 400x560 以上の解像度を確保
                 final_url = url.split("?")[0] + "?_ex=400x560"
             else:
                 final_url = url.split("?")[0] + "?_ex=300x420"
@@ -159,12 +191,12 @@ def generate_manga_data():
         
         if not candidates: continue
         
-        # スコア順にソート (Kobo優先、画像あり優先)
+        # スコア順にソート (1巻目優先 > Kobo優先 > placeholder回避)
         candidates.sort(key=lambda x: (x["score"], len(x.get("item", {}).get("itemCaption", ""))), reverse=True)
         best = candidates[0]
         bi = best["item"]
         
-        # 説明文の確保
+        # 説明文の確保（最新刊を避けても説明文は充実しているものを使いたい）
         desc = bi.get("itemCaption", "")
         if not desc or len(desc) < 15:
             for v in volumes:
@@ -182,10 +214,10 @@ def generate_manga_data():
             "description": desc,
             "tags": [bi.get("author", "漫画家")],
             "author": bi.get("author", "不明"),
-            "rating": round(random.uniform(4.2, 5.0), 1),
+            "rating": round(random.uniform(4.4, 5.0), 1),
             "cover": best["url"]
         })
-        if len(final_manga_list) >= 11000: break
+        if len(final_manga_list) >= 11500: break
 
     return final_manga_list
 
