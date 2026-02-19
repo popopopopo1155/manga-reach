@@ -72,15 +72,19 @@ def generate_manga_data():
     series_map = {} # title -> list of items
     
     # 漫画ジャンル (Kobo: 101, Books: 001001)
-    kobo_genres = ["101001", "101002", "101003", "101004", "101006"]
-    book_genres = ["001001001", "001001002", "001001003", "001001004"]
+    # 少年, 少女, 青年, レディース, BL, TL, その他
+    kobo_genres = ["101001", "101002", "101003", "101004", "101006", "101007", "101008"]
+    book_genres = ["001001001", "001001002", "001001003", "001001004", "001001012"]
+    
+    # 100%全開モード: キーワードを大量投入して網羅
+    target_keywords = ["漫画", "単行本", "全巻", "完結", "アニメ化", "ドラマ化", "映画化", "ジャンプ", "マガジン", "サンデー", "チャンピオン", "アフタヌーン", "ヤング", "人気", "話題", "最新"]
     
     print("Collecting high-quality Manga data (100% Full Power)...", flush=True)
     
     # 1. Kobo (Electronic) API - Priority for images
     for gid in kobo_genres:
         print(f"--- Fetching Kobo Genre:{gid} ---", flush=True)
-        for p in range(1, 61):
+        for p in range(1, 101): # ページ上限拡張
             items = fetch_rakuten_data(KOBO_BASE_URL, genre_id=gid, page=p)
             if not items: break
             for item in items:
@@ -89,16 +93,33 @@ def generate_manga_data():
                 if bt not in series_map: series_map[bt] = []
                 m["_source"] = "Kobo"
                 series_map[bt].append(m)
-            if p % 10 == 0: print(f"  Page {p}... Unique Series: {len(series_map)}", flush=True)
+            if p % 20 == 0: print(f"  Page {p}... Unique Series: {len(series_map)}", flush=True)
             if len(series_map) > 13000: break
-            time.sleep(0.05)
+            time.sleep(0.01)
         if len(series_map) > 13000: break
+
+    # 1.5 Kobo + Keywords
+    if len(series_map) < 10000:
+        for kw in target_keywords:
+            print(f"--- Fetching Kobo Keyword:{kw} ---", flush=True)
+            for p in range(1, 51):
+                items = fetch_rakuten_data(KOBO_BASE_URL, keyword=kw, page=p)
+                if not items: break
+                for item in items:
+                    m = item.get("Item", {})
+                    bt = clean_title(m.get("title", ""))
+                    if bt not in series_map: series_map[bt] = []
+                    m["_source"] = "Kobo"
+                    series_map[bt].append(m)
+                if len(series_map) > 13000: break
+                time.sleep(0.01)
+            if len(series_map) > 13000: break
 
     # 2. Books (Physical) API - Fallback
     if len(series_map) < 11000:
         print("Filling gaps with Books API...", flush=True)
         for gid in book_genres:
-            for p in range(1, 31):
+            for p in range(1, 41):
                 items = fetch_rakuten_data(BOOKS_BASE_URL, genre_id=gid, page=p)
                 if not items: break
                 for item in items:
@@ -107,7 +128,7 @@ def generate_manga_data():
                     if bt not in series_map: series_map[bt] = []
                     m["_source"] = "Books"
                     series_map[bt].append(m)
-                time.sleep(0.05)
+                time.sleep(0.01)
             if len(series_map) > 13000: break
 
     final_manga_list = []
