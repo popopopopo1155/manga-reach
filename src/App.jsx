@@ -277,43 +277,71 @@ const MangaDetail = () => {
 };
 
 // ホーム（一覧ページ）
-const HomePage = ({ query, setQuery, results }) => (
-  <div className="container">
-    <header>
-      <div className="logo-container">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1>Manga Reach</h1>
-          <p className="subtitle">1万件の最高画質データから、あなたにぴったりの運命の一冊を瞬時に。</p>
-        </motion.div>
-      </div>
+const HomePage = ({ query, setQuery, results, loadMore, hasMore }) => {
+  const observer = React.useRef();
+  const lastElementRef = React.useCallback(node => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMore();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loadMore, hasMore]);
 
-      <div className="search-wrapper">
-        <Search className="search-icon" size={24} />
-        <input
-          type="text" className="search-bar"
-          placeholder="作品名、著者名、キーワードで検索..."
-          value={query} onChange={(e) => setQuery(e.target.value)}
-          autoFocus
-        />
-      </div>
-    </header>
-
-    <main>
-      <div className="manga-grid">
-        <AnimatePresence mode="popLayout">
-          {results.map((manga, idx) => (
-            <MangaCard key={manga.id} manga={manga} index={idx} />
-          ))}
-        </AnimatePresence>
-      </div>
-      {results.length === 0 && (
-        <div className="no-results">
-          <p>見つかりませんでした。別のキーワードをお試しください。</p>
+  return (
+    <div className="container">
+      <header>
+        <div className="logo-container">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+            <h1>Manga Reach</h1>
+            <p className="subtitle">1万件の最高画質データから、あなたにぴったりの運命の一冊を瞬時に。</p>
+          </motion.div>
         </div>
-      )}
-    </main>
-  </div>
-);
+
+        <div className="search-wrapper">
+          <Search className="search-icon" size={24} />
+          <input
+            type="text" className="search-bar"
+            placeholder="作品名、著者名、キーワードで検索..."
+            value={query} onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+          />
+        </div>
+      </header>
+
+      <main>
+        <div className="manga-grid">
+          <AnimatePresence mode="popLayout">
+            {results.map((manga, idx) => (
+              <MangaCard key={manga.id} manga={manga} index={idx} />
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* 無限スクロールのトリガー要素 */}
+        <div ref={lastElementRef} className="scroll-sentinel">
+          {hasMore && (
+            <div className="loading-spinner-container">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="loading-spinner"
+              />
+              <span>さらに作品を読み込み中...</span>
+            </div>
+          )}
+        </div>
+
+        {results.length === 0 && (
+          <div className="no-results">
+            <p>見つかりませんでした。別のキーワードをお試しください。</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
 
 function App() {
   const [query, setQuery] = useState('');
@@ -329,15 +357,26 @@ function App() {
     }
   }, []);
 
+  const [displayCount, setDisplayCount] = useState(60);
+
   const fuse = useMemo(() => new Fuse(mangaData, {
     keys: ['title', 'author', 'description', 'tags'],
     threshold: 0.35,
     distance: 100,
   }), []);
 
+  const loadMore = useCallback(() => {
+    setDisplayCount(prev => prev + 40);
+  }, []);
+
+  useEffect(() => {
+    // 検索クエリが変わったら表示件数をリセット
+    setDisplayCount(60);
+  }, [query]);
+
   useEffect(() => {
     if (!query) {
-      setResults(mangaData.slice(0, 60));
+      setResults(mangaData.slice(0, displayCount));
       // ホームページに戻った時にタイトルをリセット
       document.title = "Manga Reach（マンガ・リーチ） - 日本最大級の1万件から見つかる究極の漫画検索ツール";
       const metaDescription = document.querySelector('meta[name="description"]');
@@ -347,14 +386,28 @@ function App() {
       return;
     }
     const filtered = fuse.search(query).map(r => r.item);
-    setResults(filtered);
-  }, [query, fuse]);
+    setResults(filtered.slice(0, displayCount));
+  }, [query, fuse, displayCount]);
+
+  const hasMore = useMemo(() => {
+    if (!query) return displayCount < mangaData.length;
+    const totalFiltered = fuse.search(query).length;
+    return displayCount < totalFiltered;
+  }, [query, fuse, displayCount]);
 
   return (
     <Router>
       <div className="app-shell">
         <Routes>
-          <Route path="/" element={<HomePage query={query} setQuery={setQuery} results={results} />} />
+          <Route path="/" element={
+            <HomePage
+              query={query}
+              setQuery={setQuery}
+              results={results}
+              loadMore={loadMore}
+              hasMore={hasMore}
+            />
+          } />
           <Route path="/manga/:id" element={<MangaDetail />} />
           <Route path="/tag/:tagName" element={<TagPage />} />
           <Route path="/about" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><About /></div>} />
