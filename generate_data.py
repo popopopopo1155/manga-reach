@@ -26,8 +26,8 @@ GENERAL_KEYWORDS = [
 ]
 
 # ジャンルIDs (楽天ブックス)
-# 001001001: 少年, 001001002: 少女, 001001003: 青年, 001001004: レディース/TL
-BOOK_GENRES = ["001001002", "001001004", "001001001", "001001003", "001001011", "001001012"]
+# 001001... コミック全般のサブジャンル
+BOOK_GENRES = ["001001001", "001001002", "001001003", "001001004", "001001006", "001001007", "001001008"]
 
 def clean_title(title):
     patterns = [
@@ -40,6 +40,34 @@ def clean_title(title):
     cleaned = re.sub(r'[\(\)（）]', '', cleaned).strip()
     return cleaned
 
+# 除外キーワード（非マンガ作品を排除）
+NEGATIVE_KEYWORDS = [
+    "楽譜", "スコア", "画集", "設定資料集", "イラスト集", "カレンダー", "雑誌", "攻略本",
+    "実用", "教本", "入門", "解説", "ガイド", "テキスト", "問題集", "事典", "辞典",
+    "アトラス", "のための", "コメディカル", "臨床", "医学", "看護", "図鑑", "学習",
+    "アンソロジー", "ファンブック", "ポストカード", "手帳", "日記", "ぬりえ"
+]
+
+def is_manga(title, description, genre_id):
+    # ジャンルチェック (コミック系以外は即座に排除)
+    if genre_id and not genre_id.startswith("001001"):
+        return False
+    
+    text = (title + " " + (description or "")).lower()
+    # 除外キーワードが含まれているか
+    if any(nk in text for nk in NEGATIVE_KEYWORDS):
+        return False
+        
+    # 「〜でわかる」「〜入門」などの学習・実用系マンガを排除するパターン
+    study_patterns = [
+        r'マンガでわかる', r'まんがでわかる', r'漫画でわかる',
+        r'はじめての', r'ポケットアトラス', r'入門編', r'図解'
+    ]
+    if any(re.search(p, text) for p in study_patterns):
+        return False
+        
+    return True
+
 def fetch_rakuten_data(genre_id=None, keyword=None, sort_method="reviewCount", page=1):
     params = {
         "format": "json",
@@ -47,9 +75,13 @@ def fetch_rakuten_data(genre_id=None, keyword=None, sort_method="reviewCount", p
         "hits": 30,
         "page": page,
         "sort": sort_method,
-        "imageFlag": 1
+        "imageFlag": 1,
+        "booksGenreId": genre_id or "001001" # ジャンル無指定ならコミックに固定
     }
-    if genre_id: params["booksGenreId"] = genre_id
+    # ジャンル指定がある場合も、必ずコミック（001001）配下であることを保証する
+    if genre_id and not genre_id.startswith("001001"):
+        params["booksGenreId"] = "001001" # 安全策
+        
     if keyword: params["title"] = keyword
     
     url = f"{BOOKS_BASE_URL}?{urllib.parse.urlencode(params)}"
@@ -98,6 +130,7 @@ def generate_manga_data():
                 for item in items:
                     m = item.get("Item", {})
                     bt = clean_title(m.get("title", ""))
+                    if not is_manga(bt, m.get("itemCaption", ""), m.get("booksGenreId", "")): continue
                     if bt not in series_map: series_map[bt] = []
                     series_map[bt].append(m)
                 if len(series_map) > TARGET_COUNT + 2000: break
@@ -113,6 +146,7 @@ def generate_manga_data():
                 for item in items:
                     m = item.get("Item", {})
                     bt = clean_title(m.get("title", ""))
+                    if not is_manga(bt, m.get("itemCaption", ""), m.get("booksGenreId", "")): continue
                     if bt not in series_map: series_map[bt] = []
                     series_map[bt].append(m)
                 if len(series_map) > TARGET_COUNT + 2000: break
@@ -128,6 +162,7 @@ def generate_manga_data():
             for item in items:
                 m = item.get("Item", {})
                 bt = clean_title(m.get("title", ""))
+                if not is_manga(bt, m.get("itemCaption", ""), m.get("booksGenreId", "")): continue
                 if bt not in series_map: series_map[bt] = []
                 series_map[bt].append(m)
             if len(series_map) > TARGET_COUNT + 2000: break
@@ -142,6 +177,7 @@ def generate_manga_data():
                 for item in items:
                     m = item.get("Item", {})
                     bt = clean_title(m.get("title", ""))
+                    if not is_manga(bt, m.get("itemCaption", ""), m.get("booksGenreId", "")): continue
                     if bt not in series_map: series_map[bt] = []
                     series_map[bt].append(m)
                 if len(series_map) > TARGET_COUNT + 2000: break
@@ -149,7 +185,6 @@ def generate_manga_data():
 
     final_manga_list = []
     print(f"Refining {len(series_map)} series records...", flush=True)
-    
     
     for base_title, volumes in series_map.items():
         volumes.sort(key=lambda x: (len(x.get("title", "")), x.get("title", "")))
