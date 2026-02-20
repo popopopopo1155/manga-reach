@@ -410,6 +410,22 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
               <Star size={20} className="section-icon color-star" />
               <h2>おすすめの作品</h2>
             </div>
+
+            <div className="trend-keywords">
+              {["いちゃいちゃ", "キュンキュン", "溺愛", "イケメン", "悪役令嬢", "逆ハーレム", "少女漫画", "TL", "オトナ女子", "甘々", "ラブストーリー"].map(kw => (
+                <button
+                  key={kw}
+                  className="trend-tag"
+                  onClick={() => {
+                    setQuery(kw);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    trackGAEvent('trend_keyword_click', 'Engagement', kw, 1);
+                  }}
+                >
+                  #{kw}
+                </button>
+              ))}
+            </div>
           </>
         )}
         <div className="manga-grid">
