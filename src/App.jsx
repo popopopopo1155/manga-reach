@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import Fuse from 'fuse.js';
 import { Search, Star, ExternalLink, ShoppingCart, Info, ShieldCheck, Mail, ArrowLeft, Smartphone, Book, Share2, Heart, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,29 @@ import { PrivacyPolicy, About } from './components/LegalPages';
 
 const RAKUTEN_AFFILIATE_ID = "5025407c.d8994699.5025407d.e9a413e7";
 const AMAZON_ASSOCIATE_ID = "mangaanimeosu-22";
+
+// GA4 Tracking Utility
+const trackGAEvent = (action, category, label, value) => {
+  if (window.gtag) {
+    window.gtag('event', action, {
+      'event_category': category,
+      'event_label': label,
+      'value': value
+    });
+  }
+};
+// Analytics & Utility Component
+const AnalyticsTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    if (window.gtag) {
+      window.gtag('event', 'page_view', {
+        page_path: location.pathname + location.search,
+      });
+    }
+  }, [location]);
+  return null;
+};
 
 // 共通のカードコンポーネント (リンク化)
 const MangaCard = ({ manga, index }) => (
@@ -244,10 +267,12 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory }) => {
                   <a
                     href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " Kindle版")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A2250762051`}
                     target="_blank" rel="noopener noreferrer" className="purchase-btn btn-kindle"
+                    onClick={() => trackGAEvent('affiliate_click', 'Electronic', manga.title, 1)}
                   >Kindle</a>
                   <a
                     href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/101227/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
                     target="_blank" rel="noopener noreferrer" className="purchase-btn btn-kobo"
+                    onClick={() => trackGAEvent('affiliate_click', 'Electronic', manga.title, 1)}
                   >Kobo</a>
                 </div>
               </div>
@@ -258,10 +283,12 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory }) => {
                   <a
                     href={`https://www.amazon.co.jp/s?k=${encodeURIComponent(manga.title + " 漫画")}&tag=${AMAZON_ASSOCIATE_ID}&rh=n%3A466280`}
                     target="_blank" rel="noopener noreferrer" className="purchase-btn btn-amazon"
+                    onClick={() => trackGAEvent('affiliate_click', 'Paper', manga.title, 1)}
                   >Amazon</a>
                   <a
                     href={`https://search.rakuten.co.jp/search/mall/${encodeURIComponent(manga.title)}/200162/?affiliateId=${RAKUTEN_AFFILIATE_ID}`}
                     target="_blank" rel="noopener noreferrer" className="purchase-btn btn-rakuten"
+                    onClick={() => trackGAEvent('affiliate_click', 'Paper', manga.title, 1)}
                   >楽天</a>
                 </div>
               </div>
@@ -406,6 +433,14 @@ function App() {
           .catch(error => console.log('SW registration failed:', error));
       });
     }
+
+    // PWA Install Tracking
+    const handleBeforeInstallPrompt = (e) => {
+      trackGAEvent('pwa_prompt_shown', 'PWA', 'Interaction', 1);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   const [displayCount, setDisplayCount] = useState(60);
@@ -427,9 +462,11 @@ function App() {
   }, [history]);
 
   const toggleFavorite = useCallback((id) => {
-    setFavorites(prev =>
-      prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]
-    );
+    setFavorites(prev => {
+      const isFav = prev.includes(id);
+      if (!isFav) trackGAEvent('favorite_add', 'UserAction', id, 1);
+      return isFav ? prev.filter(fid => fid !== id) : [...prev, id];
+    });
   }, []);
 
   const addToHistory = useCallback((id) => {
@@ -467,6 +504,11 @@ function App() {
     }
     const filtered = fuse.search(query).map(r => r.item);
     setResults(filtered.slice(0, displayCount));
+
+    // 検索イベントを追跡 (デバウンス的に一度だけ送るのが理想だが簡易的に)
+    if (query.length > 2) {
+      trackGAEvent('search', 'Engagement', query, 1);
+    }
   }, [query, fuse, displayCount]);
 
   const hasMore = useMemo(() => {
@@ -477,6 +519,7 @@ function App() {
 
   return (
     <Router>
+      <AnalyticsTracker />
       <div className="app-shell">
         <Routes>
           <Route path="/" element={

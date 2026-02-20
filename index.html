@@ -10,11 +10,20 @@
 
   <!-- Security Headers (Meta-tag based) -->
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://thumbnail.image.rakuten.co.jp https://m.media-amazon.com https://manga-reach.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://pagead2.googlesyndication.com; frame-src https://googleads.g.doubleclick.net;" />
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://thumbnail.image.rakuten.co.jp https://m.media-amazon.com https://manga-reach.com https://www.google-analytics.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://pagead2.googlesyndication.com https://www.google-analytics.com; frame-src https://googleads.g.doubleclick.net;" />
   <meta name="referrer" content="no-referrer-when-downgrade" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MGRCH100MV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-MGRCH100MV');
+  </script>
 
   <title>Manga Reach（マンガ・リーチ） - 日本最大級の1万件から見つかる究極の漫画検索ツール</title>
 
