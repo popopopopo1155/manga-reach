@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 import Fuse from 'fuse.js';
 import { Search, Star, ExternalLink, ShoppingCart, Info, ShieldCheck, Mail, ArrowLeft, Smartphone, Book, Share2, Heart, History } from 'lucide-react';
@@ -291,8 +291,8 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory }) => {
 
 // ホーム（一覧ページ）
 const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, history }) => {
-  const observer = React.useRef();
-  const lastElementRef = React.useCallback(node => {
+  const observer = useRef();
+  const lastElementRef = useCallback(node => {
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
@@ -324,6 +324,44 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
       </header>
 
       <main>
+        {!query && (
+          <>
+            {favorites?.length > 0 && (
+              <section className="user-section">
+                <div className="section-header">
+                  <Heart size={20} className="section-icon color-heart" />
+                  <h2>お気に入り</h2>
+                </div>
+                <div className="manga-grid mini">
+                  {favorites.map(fid => {
+                    const m = mangaData.find(md => md.id.toString() === fid);
+                    return m ? <MangaCard key={m.id} manga={m} /> : null;
+                  })}
+                </div>
+              </section>
+            )}
+
+            {history?.length > 0 && (
+              <section className="user-section">
+                <div className="section-header">
+                  <History size={20} className="section-icon color-history" />
+                  <h2>最近チェックした作品</h2>
+                </div>
+                <div className="manga-grid mini">
+                  {history.map(hid => {
+                    const m = mangaData.find(md => md.id.toString() === hid);
+                    return m ? <MangaCard key={m.id} manga={m} /> : null;
+                  })}
+                </div>
+              </section>
+            )}
+
+            <div className="section-header main-header">
+              <Star size={20} className="section-icon color-star" />
+              <h2>おすすめの作品</h2>
+            </div>
+          </>
+        )}
         <div className="manga-grid">
           <AnimatePresence mode="popLayout">
             {results.map((manga, idx) => (
