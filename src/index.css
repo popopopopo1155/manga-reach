@@ -474,6 +474,37 @@ h1 {
   -webkit-text-fill-color: transparent;
 }
 
+.detail-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.favorite-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.favorite-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  color: #fff;
+}
+
+.favorite-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(244, 114, 182, 0.1);
+}
+
 .share-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -592,6 +623,63 @@ h1 {
 .purchase-btn.btn-rakuten {
   background: #bf0000;
   color: #fff;
+}
+
+/* User Sections (Favorites/History) */
+.user-section {
+  margin-bottom: 4rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 24px;
+  border: 1px solid var(--glass-border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+}
+
+.section-header h2 {
+  font-size: 1.4rem;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.section-icon {
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.color-heart {
+  color: var(--accent);
+}
+
+.color-history {
+  color: var(--primary);
+}
+
+.color-star {
+  color: #fbbf24;
+}
+
+.manga-grid.mini {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.5rem;
+}
+
+.manga-grid.mini .manga-title {
+  font-size: 0.9rem;
+}
+
+.manga-grid.mini .manga-author {
+  font-size: 0.8rem;
+}
+
+.section-header.main-header {
+  margin-top: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--glass-border);
 }
 
 /* Related Section */

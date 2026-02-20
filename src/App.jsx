@@ -105,10 +105,14 @@ const TagPage = () => {
 };
 
 // 作品詳細ページコンポーネント (タグをクリック可能に修正)
-const MangaDetail = () => {
+const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const manga = useMemo(() => mangaData.find(m => m.id.toString() === id), [id]);
+
+  useEffect(() => {
+    if (id) addToHistory(id);
+  }, [id, addToHistory]);
 
   const relatedManga = useMemo(() => {
     if (!manga) return [];
@@ -201,9 +205,18 @@ const MangaDetail = () => {
         <div className="detail-main">
           <div className="detail-title-row">
             <h1 className="detail-title">{manga.title}</h1>
-            <button onClick={handleShare} className="share-btn" title="シェアする">
-              <Share2 size={20} />
-            </button>
+            <div className="detail-actions">
+              <button
+                onClick={() => toggleFavorite(manga.id.toString())}
+                className={`favorite-btn ${isFavorite(manga.id.toString()) ? 'active' : ''}`}
+                title={isFavorite(manga.id.toString()) ? "お気に入りから削除" : "お気に入りに追加"}
+              >
+                <Heart size={20} fill={isFavorite(manga.id.toString()) ? "var(--accent)" : "none"} />
+              </button>
+              <button onClick={handleShare} className="share-btn" title="シェアする">
+                <Share2 size={20} />
+              </button>
+            </div>
           </div>
           <p className="detail-author">{manga.author}</p>
 
@@ -277,7 +290,7 @@ const MangaDetail = () => {
 };
 
 // ホーム（一覧ページ）
-const HomePage = ({ query, setQuery, results, loadMore, hasMore }) => {
+const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, history }) => {
   const observer = React.useRef();
   const lastElementRef = React.useCallback(node => {
     if (observer.current) observer.current.disconnect();
@@ -358,6 +371,35 @@ function App() {
   }, []);
 
   const [displayCount, setDisplayCount] = useState(60);
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem('manga-favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem('manga-history');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('manga-favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('manga-history', JSON.stringify(history));
+  }, [history]);
+
+  const toggleFavorite = useCallback((id) => {
+    setFavorites(prev =>
+      prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]
+    );
+  }, []);
+
+  const addToHistory = useCallback((id) => {
+    setHistory(prev => {
+      const filtered = prev.filter(hid => hid !== id);
+      return [id, ...filtered].slice(0, 12); // 最大12件
+    });
+  }, []);
 
   const fuse = useMemo(() => new Fuse(mangaData, {
     keys: ['title', 'author', 'description', 'tags'],
@@ -406,9 +448,17 @@ function App() {
               results={results}
               loadMore={loadMore}
               hasMore={hasMore}
+              favorites={favorites}
+              history={history}
             />
           } />
-          <Route path="/manga/:id" element={<MangaDetail />} />
+          <Route path="/manga/:id" element={
+            <MangaDetail
+              toggleFavorite={toggleFavorite}
+              isFavorite={(id) => favorites.includes(id)}
+              addToHistory={addToHistory}
+            />
+          } />
           <Route path="/tag/:tagName" element={<TagPage />} />
           <Route path="/about" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><About /></div>} />
           <Route path="/privacy" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><PrivacyPolicy /></div>} />
