@@ -32,6 +32,26 @@ const AnalyticsTracker = () => {
   return null;
 };
 
+// AdSense A/B Test Wrapper
+const AdUnit = ({ slot, format = 'auto', className = '', adGroup }) => {
+  // グループによって表示を切り替えたい場合はここでロジックを書く
+  const isVisible = adGroup === 'B' || slot === 'footer'; // グループBは積極的、Aはフッターのみ
+
+  if (!isVisible) return null;
+
+  return (
+    <div className={`ad-container ${className}`}>
+      <ins className="adsbygoogle"
+        style={{ display: 'block' }}
+        data-ad-client="ca-pub-1271577830109733"
+        data-ad-slot={slot}
+        data-ad-format={format}
+        data-full-width-responsive="true"></ins>
+      <div className="ad-label">ADVERTISEMENT</div>
+    </div>
+  );
+};
+
 // 共通のカードコンポーネント (リンク化)
 const MangaCard = ({ manga, index }) => (
   <motion.article
@@ -128,7 +148,7 @@ const TagPage = () => {
 };
 
 // 作品詳細ページコンポーネント (タグをクリック可能に修正)
-const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory }) => {
+const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const manga = useMemo(() => mangaData.find(m => m.id.toString() === id), [id]);
@@ -298,6 +318,8 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory }) => {
       </div>
 
       {/* レコメンドセクション */}
+      <AdUnit slot="detail-top" adGroup={adGroup} className="detail-top-ad" />
+
       <section className="related-section">
         <div className="related-header">
           <History size={24} className="related-icon" />
@@ -317,7 +339,7 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory }) => {
 };
 
 // ホーム（一覧ページ）
-const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, history }) => {
+const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, history, adGroup }) => {
   const observer = useRef();
   const lastElementRef = useCallback(node => {
     if (observer.current) observer.current.disconnect();
@@ -348,6 +370,7 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
             autoFocus
           />
         </div>
+        <AdUnit slot="search-top" adGroup={adGroup} className="hero-bottom-ad" />
       </header>
 
       <main>
@@ -444,6 +467,17 @@ function App() {
   }, []);
 
   const [displayCount, setDisplayCount] = useState(60);
+  const [adGroup] = useState(() => {
+    const saved = localStorage.getItem('manga-ad-group');
+    if (saved) return saved;
+    const newGroup = Math.random() < 0.5 ? 'A' : 'B';
+    localStorage.setItem('manga-ad-group', newGroup);
+    return newGroup;
+  });
+
+  useEffect(() => {
+    trackGAEvent('assign_ad_group', 'Growth', adGroup, 1);
+  }, [adGroup]);
   const [favorites, setFavorites] = useState(() => {
     const saved = localStorage.getItem('manga-favorites');
     return saved ? JSON.parse(saved) : [];
@@ -531,6 +565,7 @@ function App() {
               hasMore={hasMore}
               favorites={favorites}
               history={history}
+              adGroup={adGroup}
             />
           } />
           <Route path="/manga/:id" element={
@@ -538,6 +573,7 @@ function App() {
               toggleFavorite={toggleFavorite}
               isFavorite={(id) => favorites.includes(id)}
               addToHistory={addToHistory}
+              adGroup={adGroup}
             />
           } />
           <Route path="/tag/:tagName" element={<TagPage />} />
