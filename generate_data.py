@@ -188,10 +188,11 @@ def generate_manga_data():
         })
         if len(final_manga_list) >= TARGET_COUNT: break
 
+    random.shuffle(final_manga_list)
     return final_manga_list
 
 if __name__ == "__main__":
     manga_list = generate_manga_data()
     with open('src/data/mangaData.json', 'w', encoding='utf-8') as f:
         json.dump(manga_list, f, ensure_ascii=False, indent=2)
-    print(f"DONE: Data Expansion & Keyword-Targeted. Count: {len(manga_list)}", flush=True)
+    print(f"DONE: Data Expansion & Shuffled. Count: {len(manga_list)}", flush=True)

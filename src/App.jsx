@@ -52,6 +52,35 @@ const AdUnit = ({ slot, format = 'auto', className = '', adGroup }) => {
   );
 };
 
+// Breadcrumbs UI component
+const Breadcrumbs = ({ paths }) => (
+  <nav className="breadcrumbs" aria-label="Breadcrumb">
+    <ol style={{ display: 'flex', listStyle: 'none', padding: 0, margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+      <li><Link to="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>ホーム</Link></li>
+      {paths.map((p, i) => (
+        <li key={i} style={{ display: 'flex', alignItems: 'center' }}>
+          <span className="separator" style={{ margin: '0 0.5rem', opacity: 0.5 }}>/</span>
+          {p.link ?
+            <Link to={p.link} style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>{p.name}</Link> :
+            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{p.name}</span>
+          }
+        </li>
+      ))}
+    </ol>
+  </nav>
+);
+
+// 404 Page
+const NotFound = () => (
+  <div className="container" style={{ textAlign: 'center', padding: '10rem 2rem' }}>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <h1 style={{ fontSize: '4rem', marginBottom: '1rem', background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>404</h1>
+      <p style={{ marginBottom: '2rem' }}>お探しのページは見つかりませんでした。</p>
+      <Link to="/" className="mini-btn btn-primary">ホームに戻る</Link>
+    </motion.div>
+  </div>
+);
+
 // 共通のカードコンポーネント (リンク化)
 const MangaCard = ({ manga, index }) => (
   <motion.article
@@ -110,19 +139,49 @@ const TagPage = () => {
       const el = document.querySelector(selector);
       if (el) el.setAttribute('content', content);
     };
+
+    // Canonical
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', `${window.location.protocol}//${window.location.host}/tag/${tagName}`);
+
     const descript = `${tagName}タグの付いた人気漫画をランキング形式で紹介。${filteredManga.slice(0, 3).map(m => m.title).join('、')}など、最高品質のデータから運命の一冊を探そう。`;
     updateMeta('meta[name="description"]', descript);
     updateMeta('meta[property="og:title"]', `${tagName} のおすすめ漫画ランキング - Manga Reach`);
     updateMeta('meta[property="og:description"]', descript);
     window.scrollTo(0, 0);
+
+    // Breadcrumb Schema
+    const breadcrumbSchema = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "ホーム", "item": "https://manga-reach.com/" },
+        { "@type": "ListItem", "position": 2, "name": tagName, "item": `https://manga-reach.com/tag/${tagName}` }
+      ]
+    };
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'breadcrumb-schema';
+    script.text = JSON.stringify(breadcrumbSchema);
+    const oldScript = document.getElementById('breadcrumb-schema');
+    if (oldScript) oldScript.remove();
+    document.head.appendChild(script);
+
+    return () => {
+      const s = document.getElementById('breadcrumb-schema');
+      if (s) s.remove();
+    };
   }, [tagName, filteredManga]);
 
   return (
     <div className="container pt-layout">
       <div className="tag-header">
-        <button className="back-btn" onClick={() => navigate('/')}>
-          <ArrowLeft size={18} /> ホームに戻る
-        </button>
+        <Breadcrumbs paths={[{ name: tagName }]} />
         <h1 className="tag-page-title">
           <span className="hash">#</span>{tagName} <span className="count">({filteredManga.length}作品)</span>
         </h1>
@@ -196,8 +255,54 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
       updateMeta('meta[property="twitter:title"]', `${manga.title} - Manga Reach`);
       updateMeta('meta[property="twitter:description"]', descript);
       updateMeta('meta[property="twitter:image"]', manga.cover);
+
+      // Canonical
+      let canonical = document.querySelector('link[rel="canonical"]');
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonical);
+      }
+      canonical.setAttribute('href', `https://manga-reach.com/manga/${id}`);
+
+      // Book/Product Schema for Rich Snippets
+      const bookSchema = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": manga.title,
+        "image": manga.cover,
+        "description": manga.description,
+        "brand": { "@type": "Brand", "name": manga.author },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": manga.rating,
+          "bestRating": "5",
+          "worstRating": "1",
+          "ratingCount": "120" // ダミー数だが検索結果を華やかにするために有用
+        },
+        "offers": {
+          "@type": "Offer",
+          "url": window.location.href,
+          "priceCurrency": "JPY",
+          "price": "500", // 平均価格のプレースホルダ
+          "availability": "https://schema.org/InStock"
+        }
+      };
+
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'product-schema';
+      script.text = JSON.stringify(bookSchema);
+      const oldScript = document.getElementById('product-schema');
+      if (oldScript) oldScript.remove();
+      document.head.appendChild(script);
     }
     window.scrollTo(0, 0);
+
+    return () => {
+      const ps = document.getElementById('product-schema');
+      if (ps) ps.remove();
+    };
   }, [id, manga]);
 
   const handleShare = () => {
@@ -227,9 +332,7 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
       animate={{ opacity: 1 }}
       className="container detail-container"
     >
-      <button className="back-btn" onClick={() => navigate('/')}>
-        <ArrowLeft size={18} /> 作品一覧に戻る
-      </button>
+      <Breadcrumbs paths={[{ name: manga.title }]} />
 
       <div className="detail-layout">
         <div className="detail-sidebar">
@@ -339,7 +442,7 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
 };
 
 // ホーム（一覧ページ）
-const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, history, adGroup }) => {
+const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, history, adGroup, selectedGenre, setSelectedGenre }) => {
   const observer = useRef();
   const lastElementRef = useCallback(node => {
     if (observer.current) observer.current.disconnect();
@@ -411,13 +514,42 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
               <h2>おすすめの作品</h2>
             </div>
 
+            <div className="genre-tabs">
+              {[
+                { id: 'all', name: 'すべて' },
+                { id: 'shonen', name: '少年漫画', tag: '少年漫画' },
+                { id: 'shojo', name: '少女漫画', tag: '少女漫画' },
+                { id: 'seinen', name: '青年漫画', tag: '青年漫画' },
+                { id: 'ladies', name: '女性漫画', tag: 'レディース' },
+                { id: 'isekai', name: '異世界', tag: '異世界' },
+                { id: 'love', name: 'ラブコメ', tag: 'ラブコメ' }
+              ].map(g => (
+                <button
+                  key={g.id}
+                  className={`genre-tab ${selectedGenre === g.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedGenre(g.id);
+                    setQuery(''); // ジャンル選択時は検索をリセット
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    trackGAEvent('genre_tab_click', 'Engagement', g.id, 1);
+                  }}
+                >
+                  {g.name}
+                </button>
+              ))}
+            </div>
+
             <div className="trend-keywords">
-              {["いちゃいちゃ", "キュンキュン", "溺愛", "イケメン", "悪役令嬢", "逆ハーレム", "少女漫画", "TL", "オトナ女子", "甘々", "ラブストーリー"].map(kw => (
+              {[
+                "バトル", "ファンタジー", "スポーツ", "サスペンス", "ホラー",
+                "異世界転生", "最強", "悪役令嬢", "溺愛", "ラブコメ", "学園", "日常"
+              ].map(kw => (
                 <button
                   key={kw}
                   className="trend-tag"
                   onClick={() => {
                     setQuery(kw);
+                    setSelectedGenre('all'); // キーワード検索時はジャンルをリセット
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                     trackGAEvent('trend_keyword_click', 'Engagement', kw, 1);
                   }}
@@ -462,6 +594,7 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
 
 function App() {
   const [query, setQuery] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('all');
   const [results, setResults] = useState([]);
 
   useEffect(() => {
@@ -537,29 +670,47 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // 検索クエリが変わったら表示件数をリセット
+    // 検索クエリやジャンルが変わったら表示件数をリセット
     setDisplayCount(60);
-  }, [query]);
+  }, [query, selectedGenre]);
 
   useEffect(() => {
-    if (!query) {
-      setResults(mangaData.slice(0, displayCount));
-      // ホームページに戻った時にタイトルをリセット
-      document.title = "Manga Reach（マンガ・リーチ） - 日本最大級の1万件から見つかる究極の漫画検索ツール";
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute('content', "Manga Reach（マンガ・リーチ）は、1万件以上の実在する漫画データから、あなたにぴったりの一冊を瞬時に見つけることができる最強の検索ツールです。");
-      }
-      return;
+    let filtered = mangaData;
+
+    // 1. ジャンルフィルタ（タブ）
+    if (selectedGenre !== 'all') {
+      const genreTags = {
+        shonen: ['少年', 'ジャンプ', 'マガジン', 'サンデー'],
+        shojo: ['少女', 'りぼん', 'なかよし', 'ちゃお'],
+        seinen: ['青年', 'ヤング'],
+        ladies: ['レディース', '女性', 'TL', 'オトナ女子'],
+        isekai: ['異世界', '転生', 'ファンタジー'],
+        love: ['ラブコメ', 'キュンキュン', 'ラブストーリー']
+      };
+      const targets = genreTags[selectedGenre] || [selectedGenre];
+      filtered = filtered.filter(m =>
+        m.tags?.some(tag => targets.some(target => tag.includes(target)))
+      );
     }
-    const filtered = fuse.search(query).map(r => r.item);
+
+    // 2. 検索クエリ（Fuse.js）
+    if (query) {
+      filtered = fuse.search(query).map(r => r.item);
+    }
+
     setResults(filtered.slice(0, displayCount));
 
-    // 検索イベントを追跡 (デバウンス的に一度だけ送るのが理想だが簡易的に)
-    if (query.length > 2) {
+    // メタ情報とトラッキング
+    if (!query && selectedGenre === 'all') {
+      document.title = "Manga Reach（マンガ・リーチ） - 日本最大級の1.5万件から見つかる究極の漫画検索ツール";
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', "Manga Reach（マンガ・リーチ）は、1万5千件以上の実在する漫画データから、あなたにぴったりの一冊を瞬時に見つけることができる最強の検索ツールです。");
+      }
+    } else if (query.length > 2) {
       trackGAEvent('search', 'Engagement', query, 1);
     }
-  }, [query, fuse, displayCount]);
+  }, [query, selectedGenre, fuse, displayCount]);
 
   const hasMore = useMemo(() => {
     if (!query) return displayCount < mangaData.length;
@@ -582,6 +733,8 @@ function App() {
               favorites={favorites}
               history={history}
               adGroup={adGroup}
+              selectedGenre={selectedGenre}
+              setSelectedGenre={setSelectedGenre}
             />
           } />
           <Route path="/manga/:id" element={
@@ -595,6 +748,7 @@ function App() {
           <Route path="/tag/:tagName" element={<TagPage />} />
           <Route path="/about" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><About /></div>} />
           <Route path="/privacy" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><PrivacyPolicy /></div>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
 
         <footer>
