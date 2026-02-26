@@ -1,6 +1,8 @@
 import json
 import os
 from datetime import datetime
+import xml.sax.saxutils as saxutils
+import urllib.parse
 
 # 設定
 BASE_URL = "https://manga-reach.com"
@@ -45,9 +47,12 @@ def generate_sitemap():
             if tag:
                 all_tags.add(tag)
     
+    # タグページはURLエンコードが必要
     for tag in sorted(list(all_tags)):
+        # URLのパス部分は個別にエンコード
+        encoded_tag = urllib.parse.quote(tag)
         urls.append({
-            "loc": f"{BASE_URL}/tag/{tag}",
+            "loc": f"{BASE_URL}/tag/{encoded_tag}",
             "lastmod": today,
             "changefreq": "weekly",
             "priority": "0.6"
@@ -60,7 +65,9 @@ def generate_sitemap():
     ]
     
     for url in urls:
-        line = f'  <url><loc>{url["loc"]}</loc><lastmod>{url["lastmod"]}</lastmod><changefreq>{url["changefreq"]}</changefreq><priority>{url["priority"]}</priority></url>'
+        # loc 内の & などの特殊文字を XML エスケープ
+        escaped_loc = saxutils.escape(url["loc"])
+        line = f'  <url><loc>{escaped_loc}</loc><lastmod>{url["lastmod"]}</lastmod><changefreq>{url["changefreq"]}</changefreq><priority>{url["priority"]}</priority></url>'
         xml_lines.append(line)
         
     xml_lines.append('</urlset>')
