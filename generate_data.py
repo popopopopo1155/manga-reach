@@ -110,6 +110,10 @@ NEGATIVE_KEYWORDS = [
 def is_manga(title, description, genre_id):
     if genre_id and not genre_id.startswith("001001"): return False
     
+    # 伝説級タイトルはNGワードチェックをバイパスする（高度に発達した「医学」などは許可）
+    if any(lt.lower() in title.lower() for lt in LEGENDARY_TITLES):
+        return True
+
     # 雑誌本体（〜号、〜年月）を排除
     if re.search(r'\d{4}年\s*\d+号', title) or re.search(r'\d+号$', title):
         return False
