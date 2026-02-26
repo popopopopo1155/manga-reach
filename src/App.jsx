@@ -8,6 +8,7 @@ import { PrivacyPolicy, About } from './components/LegalPages';
 
 const RAKUTEN_AFFILIATE_ID = "5025407c.d8994699.5025407d.e9a413e7";
 const AMAZON_ASSOCIATE_ID = "mangaanimeosu-22";
+const SITE_URL = "https://manga-reach.com";
 
 // GA4 Tracking Utility
 const trackGAEvent = (action, category, label, value) => {
@@ -147,7 +148,7 @@ const TagPage = () => {
       canonical.setAttribute('rel', 'canonical');
       document.head.appendChild(canonical);
     }
-    canonical.setAttribute('href', `${window.location.protocol}//${window.location.host}/tag/${tagName}`);
+    canonical.setAttribute('href', `${SITE_URL}/tag/${tagName}`);
 
     const descript = `${tagName}タグの付いた人気漫画をランキング形式で紹介。${filteredManga.slice(0, 3).map(m => m.title).join('、')}など、最高品質のデータから運命の一冊を探そう。`;
     updateMeta('meta[name="description"]', descript);
@@ -263,7 +264,7 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
         canonical.setAttribute('rel', 'canonical');
         document.head.appendChild(canonical);
       }
-      canonical.setAttribute('href', `https://manga-reach.com/manga/${id}`);
+      canonical.setAttribute('href', `${SITE_URL}/manga/${id}`);
 
       // Book/Product Schema for Rich Snippets
       const bookSchema = {
