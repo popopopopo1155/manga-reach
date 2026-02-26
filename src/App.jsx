@@ -615,7 +615,7 @@ function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const [displayCount, setDisplayCount] = useState(60);
+  const [displayCount, setDisplayCount] = useState(100);
   const [adGroup] = useState(() => {
     const saved = localStorage.getItem('manga-ad-group');
     if (saved) return saved;
@@ -671,26 +671,38 @@ function App() {
 
   useEffect(() => {
     // 検索クエリやジャンルが変わったら表示件数をリセット
-    setDisplayCount(60);
+    setDisplayCount(100);
   }, [query, selectedGenre]);
 
   useEffect(() => {
     let filtered = mangaData;
 
-    // 1. ジャンルフィルタ（タブ）
+    // 1. ジャンル・カテゴリーフィルタ
     if (selectedGenre !== 'all') {
-      const genreTags = {
-        shonen: ['少年', 'ジャンプ', 'マガジン', 'サンデー'],
-        shojo: ['少女', 'りぼん', 'なかよし', 'ちゃお'],
-        seinen: ['青年', 'ヤング'],
-        ladies: ['レディース', '女性', 'TL', 'オトナ女子'],
-        isekai: ['異世界', '転生', 'ファンタジー'],
-        love: ['ラブコメ', 'キュンキュン', 'ラブストーリー']
+      const genreIdMap = {
+        shonen: '001001001',
+        shojo: '001001002',
+        seinen: '001001003',
+        ladies: '001001004'
       };
-      const targets = genreTags[selectedGenre] || [selectedGenre];
-      filtered = filtered.filter(m =>
-        m.tags?.some(tag => targets.some(target => tag.includes(target)))
-      );
+
+      const targetGid = genreIdMap[selectedGenre];
+      if (targetGid) {
+        // ジャンルIDによる前方一致 (サブジャンルも含むため)
+        filtered = filtered.filter(m => m.genreId?.startsWith(targetGid));
+      } else {
+        // 特殊カテゴリー（異世界、ラブコメ等）はタグベース
+        const categoryTags = {
+          isekai: ['異世界', '転生', 'ファンタジー'],
+          love: ['ラブコメ', 'キュンキュン', 'ラブストーリー', '恋愛']
+        };
+        const targets = categoryTags[selectedGenre];
+        if (targets) {
+          filtered = filtered.filter(m =>
+            m.tags?.some(tag => targets.some(target => tag.includes(target)))
+          );
+        }
+      }
     }
 
     // 2. 検索クエリ（Fuse.js）
@@ -698,7 +710,17 @@ function App() {
       filtered = fuse.search(query).map(r => r.item);
     }
 
-    setResults(filtered.slice(0, displayCount));
+    // 3. 表示順の最適化 (Legendary優先 -> Rating順)
+    const sorted = [...filtered].sort((a, b) => {
+      // 伝説級フラグを最優先
+      if (a.isLegendary && !b.isLegendary) return -1;
+      if (!a.isLegendary && b.isLegendary) return 1;
+
+      // 次に評価順
+      return (b.rating || 0) - (a.rating || 0);
+    });
+
+    setResults(sorted.slice(0, displayCount));
 
     // メタ情報とトラッキング
     if (!query && selectedGenre === 'all') {
