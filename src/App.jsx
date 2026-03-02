@@ -784,12 +784,6 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
 
-        <footer>
-          <nav className="footer-nav">
-            <Link to="/" className="footer-link">HOME</Link>
-            <Link to="/about" className="footer-link">ABOUT</Link>
-            <Link to="/privacy" className="footer-link">PRIVACY</Link>
-          </nav>
           <div className="trust-badge">
             <ShieldCheck size={16} />
             <span>当サイトは正規リンクのみを提供しています。</span>
