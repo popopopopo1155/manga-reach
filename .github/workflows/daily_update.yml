@@ -1,0 +1,28 @@
+name: Daily Content Update
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 毎日JST 09:00に実行
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Run daily update script
+        run: python daily_update.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add src/data/mangaData.json public/sitemap.xml
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: automated daily content update [skip ci]" && git push)
