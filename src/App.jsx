@@ -3,8 +3,16 @@ import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate, u
 import Fuse from 'fuse.js';
 import { Search, Star, ExternalLink, ShoppingCart, Info, ShieldCheck, Mail, ArrowLeft, Smartphone, Book, Share2, Heart, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import mangaData from './data/mangaData.json';
 import { PrivacyPolicy, About } from './components/LegalPages';
+
+// Dynamic data loading to handle large JSON size
+let mangaDataCache = [];
+async function loadMangaData() {
+  if (mangaDataCache.length > 0) return mangaDataCache;
+  const data = await import('./data/mangaData.json');
+  mangaDataCache = data.default;
+  return mangaDataCache;
+}
 
 const RAKUTEN_AFFILIATE_ID = "5025407c.d8994699.5025407d.e9a413e7";
 const AMAZON_ASSOCIATE_ID = "mangaanimeosu-22";
@@ -131,7 +139,7 @@ const TagPage = () => {
   const navigate = useNavigate();
 
   const filteredManga = useMemo(() => {
-    return mangaData.filter(m => m.tags?.includes(tagName)).sort((a, b) => b.rating - a.rating);
+    return mangaDataCache.filter(m => m.tags?.includes(tagName)).sort((a, b) => b.rating - a.rating);
   }, [tagName]);
 
   useEffect(() => {
@@ -211,7 +219,7 @@ const TagPage = () => {
 const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const manga = useMemo(() => mangaData.find(m => m.id.toString() === id), [id]);
+  const manga = useMemo(() => mangaDataCache.find(m => m.id.toString() === id), [id]);
 
   useEffect(() => {
     if (id) addToHistory(id);
@@ -219,7 +227,7 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
 
   const relatedManga = useMemo(() => {
     if (!manga) return [];
-    return mangaData
+    return mangaDataCache
       .filter(m => m.id !== manga.id)
       .map(m => {
         let score = 0;
@@ -498,7 +506,7 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
                 </div>
                 <div className="manga-grid mini">
                   {favorites.map(fid => {
-                    const m = mangaData.find(md => md.id.toString() === fid);
+                    const m = mangaDataCache.find(md => md.id.toString() === fid);
                     return m ? <MangaCard key={m.id} manga={m} /> : null;
                   })}
                 </div>
@@ -513,7 +521,7 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
                 </div>
                 <div className="manga-grid mini">
                   {history.map(hid => {
-                    const m = mangaData.find(md => md.id.toString() === hid);
+                    const m = mangaDataCache.find(md => md.id.toString() === hid);
                     return m ? <MangaCard key={m.id} manga={m} /> : null;
                   })}
                 </div>
@@ -604,10 +612,23 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
 };
 
 function App() {
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [results, setResults] = useState([]);
 
+  useEffect(() => {
+    loadMangaData().then(() => setDataLoaded(true));
+  }, []);
+
+  const fuse = useMemo(() => {
+    if (!dataLoaded) return null;
+    return new Fuse(mangaDataCache, {
+      keys: ['title', 'author', 'description', 'tags'],
+      threshold: 0.35,
+      distance: 100,
+    });
+  }, [dataLoaded]);
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -670,11 +691,6 @@ function App() {
     });
   }, []);
 
-  const fuse = useMemo(() => new Fuse(mangaData, {
-    keys: ['title', 'author', 'description', 'tags'],
-    threshold: 0.35,
-    distance: 100,
-  }), []);
 
   const loadMore = useCallback(() => {
     setDisplayCount(prev => prev + 40);
@@ -686,7 +702,8 @@ function App() {
   }, [query, selectedGenre]);
 
   useEffect(() => {
-    let filtered = mangaData;
+    if (!dataLoaded) return;
+    let filtered = mangaDataCache;
 
     // 1. ジャンル・カテゴリーフィルタ
     if (selectedGenre !== 'all') {
@@ -746,10 +763,11 @@ function App() {
   }, [query, selectedGenre, fuse, displayCount]);
 
   const hasMore = useMemo(() => {
-    if (!query) return displayCount < mangaData.length;
-    const totalFiltered = fuse.search(query).length;
+    if (!dataLoaded) return false;
+    if (!query) return displayCount < mangaDataCache.length;
+    const totalFiltered = fuse?.search(query).length || 0;
     return displayCount < totalFiltered;
-  }, [query, fuse, displayCount]);
+  }, [query, fuse, displayCount, dataLoaded]);
 
   return (
     <Router>
