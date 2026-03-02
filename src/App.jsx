@@ -374,9 +374,19 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
           </div>
 
           <div className="detail-description">
-            <h3>作品紹介</h3>
+            <h3>あらすじ</h3>
             <p>{manga.description}</p>
           </div>
+
+          {manga.commentary && (
+            <div className="editorial-commentary glass">
+              <div className="commentary-header">
+                <Info size={18} className="commentary-icon" />
+                <span>編集部のおすすめポイント</span>
+              </div>
+              <p>{manga.commentary}</p>
+            </div>
+          )}
 
           <div className="purchase-card">
             <div className="purchase-header">
