@@ -220,7 +220,7 @@ const TagPage = ({ dataLoaded }) => {
 const MangaDetail = ({ dataLoaded, toggleFavorite, isFavorite, addToHistory, adGroup }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const manga = useMemo(() => mangaDataCache.find(m => m.id.toString() === id), [id]);
+  const manga = useMemo(() => mangaDataCache.find(m => m.id.toString() === id), [id, dataLoaded]);
 
   useEffect(() => {
     if (id) addToHistory(id);
