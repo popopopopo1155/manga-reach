@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Environment variables / Secrets
+.env
+.env.*
+secrets.json
+*.key
+auth.json
+
+# Local history
+.history
+.tmp

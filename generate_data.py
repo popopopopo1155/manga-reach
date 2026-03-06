@@ -6,8 +6,10 @@ import urllib.parse
 import re
 import hashlib
 
-# 楽天API設定
-APP_ID = "1016939452195557224"
+import os
+
+# 楽天API設定 (環境変数から取得、ローカル実行時はデフォルト値を使用)
+APP_ID = os.environ.get("RAKUTEN_APP_ID", "1016939452195557224")
 BOOKS_BASE_URL = "https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404"
 
 # ターゲット件数
