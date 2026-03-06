@@ -38,17 +38,40 @@ LEGENDARY_TITLES = [
     "となりの席のヤツがそういう目で見てくる", "誰か夢だと言ってくれ", "変な家", "恋する(おとめ)の作り方", "薫る花は凛と咲く"
 ]
 
-def generate_commentary(title, author, is_legendary):
+def generate_commentary(title, author, is_legendary, description=""):
+    # あらすじからキーワードを抽出（簡易的だが効果的）
+    keywords = []
+    if description:
+        # 3文字以上の漢字・カタカナの連続をキーワード候補とする
+        potential = re.findall(r'[\u4E00-\u9FFF]{2,}|[\u30A1-\u30F6]{2,}', description)
+        keywords = [k for k in potential if k not in ["物語", "世界", "登場", "展開", "魅力", "作品", "連載", "発売", "本作"]]
+        keywords = list(dict.fromkeys(keywords))[:5] # 重複除去して最大5つ
+
+    keyword_text = "、".join(keywords) if keywords else "独自の重厚な世界観"
+    
+    # 巻数情報の抽出
+    vol_match = re.search(r'(\d+)\s*(巻|vol)', title)
+    if not vol_match:
+        vol_match = re.search(r'\s(\d+)$', title) # "ONE PIECE 100" 形式
+        
+    vol_context = ""
+    if vol_match:
+        vol_num = vol_match.group(1)
+        if vol_num == "1":
+            vol_context = "記念すべき第1巻として、壮大な物語の幕開けを鮮烈に描く本作は、"
+        else:
+            vol_context = f"物語が大きな転換点を迎える第{vol_num}巻。物語の核心に迫る展開が続き、"
+
     intros = [
-        f"『{title}』は、{author}先生が放つ珠玉のエンターテインメント作品です。独自の感性で描かれる本作は、マンガの可能性を広げる一石を投じています。",
-        f"今、マンガ好きの間で話題沸騰中の『{title}』（{author}著）は、一読の価値がある傑作です。緻密なプロットが織りなす物語は、読者の期待を良い意味で裏切り続けます。",
-        f"読者の心に深く突き刺さる『{title}』。{author}先生の圧倒的な表現力と、キャラクターへの深い愛情が作品全体から溢れ出しており、読む者に強烈な印象を残します。"
+        f"『{title}』は、{author}先生が放つ珠玉のエンターテインメント作品です。{vol_context}{keyword_text}に焦点を当てた緻密な描写は、読者の期待を良い意味で裏切り続けます。",
+        f"今、マンガ好きの間で話題沸騰中の『{title}』（{author}著）は、{vol_context}{keyword_text}を巡る熱いドラマが展開されます。一読の価値がある傑作です。",
+        f"読者の心に深く突き刺さる『{title}』。{vol_context}{author}先生の圧倒的な表現力によって描かれる{keyword_text}の物語は、読む者に強烈な印象を残します。"
     ]
     
     story_aspects = [
-        "本作の最大の魅力は、緻密に計算されたストーリー構成にあります。予測不可能な展開の連続に、ページをめくる手が止まりません。登場人物たちの心理描写も非常に丁寧で、読者は自然とその世界観に没入してしまいます。特に、キャラクター同士の葛藤や成長が描かれるシーンは、現代社会においても通ずる普遍的なテーマを持っており、深く考えさせられる内容となっています。",
-        "緻密な世界観設定と魅力的なキャラクター造形が本作の肝です。物語が進むにつれて少しずつ明かされていく世界の秘密や、張り巡らされた伏線の数々には驚きを隠せません。単なる娯楽の枠を超えた、深いメッセージ性が込められている点も高く評価されています。各エピソードが独立しつつも大きなうねりとなって収束していく様は、まさに圧巻の一言に尽きます。",
-        "テンポの良い掛け合いと思わず唸るような独創的なアイデアが満載です。笑いあり、涙あり、そして熱い感動もありと、読者の感情を激しく揺さぶるエピソードが目白押し。次の一手が全く読めない、スリリングな体験を約束します。日常の些細な瞬間から宇宙規模の壮大な物語まで、驚異的なイマジネーションによって描かれるその世界は、唯一無二の存在感を放っています。"
+        f"本作の最大の魅力は、{keyword_text}を中心に据えた重厚なストーリー構成にあります。予測不可能な展開の連続に、ページをめくる手が止まりません。特に今巻におけるキャラクター同士の葛藤や成長は、これまで以上に鮮明に描かれています。",
+        f"緻密な世界観設定と魅力的なキャラクター造形が本作の肝です。物語が進むにつれて{keyword_text}の秘密が明かされていく様には驚きを隠せません。単なる娯楽の枠を超えた、深いメッセージ性が込められています。",
+        f"テンポの良い掛け合いと思わず唸るような独創的なアイデアが満載です。{keyword_text}を主軸としたエピソードが目白押し。次の一手が全く読めない、スリリングな体験を約束します。"
     ]
     
     art_styles = [
@@ -71,16 +94,16 @@ def generate_commentary(title, author, is_legendary):
 
     if is_legendary:
         legend_pre = [
-            f"もはや説明不要、漫画史における「神話」とも言えるのがこの『{title}』です。多くの読者に勇気と希望を与え続けてきた本作は、まさに不朽の名作と呼ぶに相応しい存在感を放っています。",
-            f"全マンガ読者の必修科目と言っても過言ではない、至高のレジェンド作品『{title}』。数々の記録を塗り替え、業界全体に多大な影響を与えてきたその衝撃は、今なお色褪せることなく輝き続けています。"
+            f"もはや説明不要、漫画史における「神話」とも言えるのがこの『{title}』です。{keyword_text}という革新的なテーマを世に知らしめた本作は、まさに不朽の名作に相応しい存在感を放っています。",
+            f"全マンガ読者の必修科目と言っても過言ではない、至高のレジェンド作品『{title}』。{keyword_text}を巡る伝説的な描写は、今なお色褪せることなく輝き続けています。"
         ]
-        return random.choice(legend_pre) + "\n\n" + random.choice(intros) + "\n\n" + random.choice(story_aspects) + "\n\n" + random.choice(art_styles) + "\n\n" + random.choice(targets) + "\n\n" + random.choice(conclusions) + "\n\n" + "まさに時代を象徴する作品であり、その文化的・歴史的価値は計り知れません。読むたびに新しい発見があり、何度でも読み返したくなる不思議な魔力に満ちており、まさに漫画という文化そのものを体現している傑作です。"
+        return random.choice(legend_pre) + "\n\n" + random.choice(intros) + "\n\n" + random.choice(story_aspects) + "\n\n" + random.choice(art_styles) + "\n\n" + random.choice(targets) + "\n\n" + random.choice(conclusions) + "\n\n" + "まさに漫画という文化そのものを体現している傑作です。"
 
     return random.choice(intros) + "\n\n" + random.choice(story_aspects) + "\n\n" + random.choice(art_styles) + "\n\n" + random.choice(targets) + "\n\n" + random.choice(conclusions)
 
 def clean_title(title):
-    cleaned = re.sub(r'[\d１２３４５６７８９０]+\s*巻.*', '', title)
-    cleaned = re.sub(r'\(.*?\)|（.*?）', '', cleaned)
+    # 余計な記号や括弧を削除するのみ。巻数は保持する（各巻を独立したページにするため）
+    cleaned = re.sub(r'\(.*?\)|（.*?）', '', title)
     cleaned = re.sub(r'【.*?】|\[.*?\]', '', cleaned)
     cleaned = re.sub(r'[\(\)（）]', '', cleaned).strip()
     return cleaned
@@ -165,8 +188,8 @@ def generate_manga_data():
 
     final_list = []
     print(f"Refining {len(series_map)} titles...", flush=True)
-    for title, volumes in series_map.items():
-        is_legend = any(lt.lower() in title.lower() for lt in LEGENDARY_TITLES)
+    for full_title, volumes in series_map.items():
+        is_legend = any(lt.lower() in full_title.lower() for lt in LEGENDARY_TITLES)
         candidates = []
         for idx, v in enumerate(volumes):
             url = v.get("largeImageUrl", "")
@@ -179,16 +202,16 @@ def generate_manga_data():
         best = sorted(candidates, key=lambda x: x["score"], reverse=True)[0]
         bi = best["item"]
         desc = bi.get("itemCaption", "")
-        if not desc: desc = f"「{title}」の圧倒的な世界観。不朽の名作を美麗な書影とお楽しみください。"
+        if not desc: desc = f"『{full_title}』が贈る圧倒的な世界観。不朽の名作を美麗な書影とお楽しみください。"
         
         gid = bi.get("booksGenreId", "001001")
         author = bi.get("author", "不明")
         
         final_list.append({
-            "id": hashlib.md5((title + author).encode()).hexdigest()[:12],
-            "title": title, "description": desc,
-            "commentary": generate_commentary(title, author, is_legend),
-            "tags": extract_tags(title, desc, author, gid),
+            "id": hashlib.md5((full_title + author).encode()).hexdigest()[:12],
+            "title": full_title, "description": desc,
+            "commentary": generate_commentary(full_title, author, is_legend, desc),
+            "tags": extract_tags(full_title, desc, author, gid),
             "author": author,
             "rating": round(random.uniform(4.7, 5.0) if is_legend else random.uniform(4.4, 4.9), 1),
             "cover": best["url"], "genreId": gid, "isLegendary": is_legend

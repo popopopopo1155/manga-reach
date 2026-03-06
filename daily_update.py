@@ -57,7 +57,7 @@ def daily_update():
                             "id": m_id,
                             "title": title,
                             "description": desc,
-                            "commentary": generate_commentary(title, author, False),
+                            "commentary": generate_commentary(title, author, False, desc),
                             "tags": extract_tags(title, desc, author, gid),
                             "author": author,
                             "rating": round(random.uniform(4.4, 4.9), 1),
