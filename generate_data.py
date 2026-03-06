@@ -5,109 +5,144 @@ import time
 import urllib.parse
 import re
 import hashlib
-
 import os
 
-# 楽天API設定 (環境変数から取得、ローカル実行時はデフォルト値を使用)
+# 楽天API設定
 APP_ID = os.environ.get("RAKUTEN_APP_ID", "1016939452195557224")
 BOOKS_BASE_URL = "https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404"
 
-# ターゲット件数
-TARGET_COUNT = 15500
+# 主要作品のボリューム別ハイライト（リサーチ済みデータ）
+VOLUME_HIGHLIGHTS = {
+    "キングダム": {
+        "50": "朱海平原の戦いが激化し、信と王賁が右翼で覚醒を見せる熱い展開。",
+        "51": "食糧難に陥る楊端和軍が犬戎族と対峙し、決死の作戦を敢行する緊迫の巻。",
+        "52": "亜光将軍の危機を信と王賁が救い、楊端和が犬戎王ロゾを討つ大戦果。",
+        "53": "橑陽の戦いが決着。信と王賁が士気を高め合い、戦局は新たな局面へ。",
+        "54": "王翦中央軍がついに進軍を開始。兵糧が尽きかける極限状態での読み合いが圧巻。",
+        "55": "王賁が討たれ、信が臨時の総大将に。仲間との別れ（松左の死）が描かれる涙の十四日目。",
+        "56": "朱海平原、ついに最終決戦。王翦と李牧、天才軍師同士の総力戦がピークに。",
+        "57": "信と龐煖の宿命の対決が開始。李牧が明かす龐煖の「求道者」としての真理。",
+        "58": "信と龐煖の死闘がついに決着。そして鄴が陥落し、歴史が大きく動く瞬間。",
+        "59": "論功行賞。信がついに将軍へと昇進し、飛信隊が1万5千人の軍勢となる転換点。",
+        "60": "呂不韋との最終決着と、嬴政が語る「人の本質」。秦魏同盟の締結。",
+        "62": "新・六大将軍の任命。影丘での過酷な戦いが始まり、王賁の玉鳳軍が窮地に。",
+        "64": "桓騎の誰も予想だにしない奇策が炸裂。扈輒を討ち取り、戦場を恐怖に陥れる。",
+        "68": "桓騎と李牧の運命を左右する肥下の戦い。桓騎の変態的な戦術が冴え渡る。",
+        "70": "韓非子の招聘任務。信が語る「人の本質は火である」という答えが感動を呼ぶ。"
+    },
+    "ONE PIECE": {
+        "95": "カイドウとビッグ・マムが海賊同盟を結成。ゾロが名刀「閻魔」を手にする重要な巻。",
+        "96": "光月おでんの過去編。白ひげやロジャーとの冒険、世界の夜明けを願う魂の物語。",
+        "97": "カン十郎の裏切りが発覚。ジンベエが正式加入し、鬼ヶ島討ち入りへ。",
+        "99": "屋上での「最悪の世代」vs「四皇」。ルフィが海賊王への決意を再宣言する大舞台。",
+        "100": "ルフィが「覇王色」を纏う力を覚醒。四皇二人の圧倒的な力に食らいつく記念すべき巻。",
+        "101": "ゾロとサンジが看板（キング・クイーン）と激突。ゴムゴムの実の秘密が示唆される。",
+        "105": "新「四皇」ルフィ。ベガパンクの島「エッグヘッド」への上陸と新展開の幕開け。",
+        "106": "空白の100年やオハラの意志が明かされる。ルフィvsルッチの再戦に胸が熱くなる。",
+        "107": "五老星やイム様の不穏な動き。ガープがコビー救出のため、ハチノスで伝説の力を見せる。",
+        "108": "黄猿とサターン聖の襲来。バーソロミュー・くまの壮絶な過去に涙が止まらない。"
+    },
+    "名探偵コナン": {
+        "100": "FBIと黒ずくめの組織の全面対決。ラムの正体にも迫る記念碑的な一冊。",
+        "101": "怪盗キッドvs安室透の豪華競演。新たな警察関係者・萩原千速が登場。",
+        "104": "17年前の羽田浩司事件の真相が遂に明かされる、ファン必読の衝撃展開。"
+    },
+    "ブルーロック": {
+        "1": "300人のストライカーによる「青い監獄」開幕。潔世一のエゴが目覚める物語の起点。",
+        "11": "二次選考決着。糸師凛の圧倒的な実力と、潔が掴む「運」のカラクリ。",
+        "14": "U-20日本代表戦。天才・糸師冴のゲームメイクにブルーロックチームが挑む。",
+        "20": "新英雄大戦（ネオ・エゴイストリーグ）開幕。世界のトップリーグで潔が真の価値を問う。"
+    }
+}
 
-# ジャンルIDs (楽天ブックス)
-BOOK_GENRES = ["001001001", "001001002", "001001003", "001001004", "001001006", "001001007", "001001008"]
+class NaturalSentenceBuilder:
+    def __init__(self, title, author, description, vol_num):
+        self.title = title
+        self.author = author
+        self.desc = description
+        self.vol_num = vol_num
+        self.keywords = self._extract_keywords()
+        
+    def _extract_keywords(self):
+        # 意味のあるカタカナ語や漢字の固有名詞を抽出
+        if not self.desc: return []
+        potential = re.findall(r'[\u4E00-\u9FFF]{2,}|[\u30A1-\u30F6]{2,}', self.desc)
+        ignore = ["物語", "世界", "登場", "展開", "魅力", "作品", "連載", "発売", "本作", "収録", "真相", "事件"]
+        k = [p for p in potential if p not in ignore]
+        return list(dict.fromkeys(k))[:3]
 
-# 有名作品・レジェンド枠
-LEGENDARY_TITLES = [
-    "ONE PIECE", "NARUTO", "BLEACH", "鬼滅の刃", "呪術廻戦", "チェンソーマン", 
-    "僕のヒーローアカデミア", "ハイキュー", "銀魂", "HUNTER×HUNTER", "幽☆遊☆白書", 
-    "ドラゴンボール", "スラムダンク", "進撃の巨人", "鋼の錬金術師", "DEATH NOTE",
-    "こちら葛飾区亀有公園前派出所", "ジョジョの奇妙な冒険", "キングダム", 
-    "ゴールデンカムイ", "SPY×FAMILY", "推しの子", "ブルーロック", "怪獣8号",
-    "名探偵コナン", "ドラえもん", "クレヨンしんちゃん", "サザエさん", "ブラック・ジャック",
-    "葬送のフリーレン", "薬屋のひとりごと", "アオのハコ", "アオアシ", "ダンダダン", 
-    "転生したらスライムだった件", "カグラバチ", "君と宇宙を歩くために", "環と周",
-    "ふつうの軽音部", "雷雷雷", "魔男のイチ", "3月のライオン", "宇宙兄弟",
-    "よつばと", "ちはやふる", "暁のヨナ", "赤髪の白雪姫", "君に届け", "ヲタクに恋は難しい",
-    "東京卍リベンジャーズ", "ブルーピリオド", "地獄楽", "マッシュル", "アンデッドアンラック",
-    "ベルセルク", "20世紀少年", "MONSTER", "バガボンド", "ROOKIES", "金色のッシュ!!", "封神演義", "るろうに剣心",
-    "あしたのジョー", "ガラスの仮面", "デビルマン", "銀河鉄道999", "巨人の星", "ゴルゴ13",
-    "踏んだり、蹴ったり、愛したり", "正反対な君と僕", "姉のともだち", "悪役令嬢たちは揺るがない",
-    "高度に発達した医学は魔法と区別がつかない", "魔女と傭兵", "異世界刀匠の魔剣製作ぐらし",
-    "となりの席のヤツがそういう目で見てくる", "誰か夢だと言ってくれ", "変な家", "恋する(おとめ)の作り方", "薫る花は凛と咲く"
-]
+    def build(self, is_legend):
+        highlight = ""
+        for series_name, volumes in VOLUME_HIGHLIGHTS.items():
+            if series_name in self.title:
+                highlight = volumes.get(self.vol_num, "")
+                break
+        
+        # 導入
+        intro_patterns = [
+            f"『{self.title}』は、{self.author}先生が放つ渾身のエンターテインメント作品です。",
+            f"今、マンガファンの間で絶大な支持を集めている『{self.title}』（{self.author}著）は、一読の価値がある傑作です。",
+            f"{self.author}先生の圧倒的な筆力で描かれる『{self.title}』。読者の心を一気に掴んで離さない魅力的な一冊です。"
+        ]
+        
+        # 巻数・リサーチ情報
+        vol_info = ""
+        if highlight:
+            vol_info = f"特に第{self.vol_num}巻である本作では、{highlight} "
+        elif self.vol_num:
+            vol_info = f"物語が大きな転換点を迎える第{self.vol_num}巻。前巻からの伏線が回収され、次なる嵐を予感させる重要な局面が描かれています。"
+            
+        # ストーリー・描写
+        kw_text = "や".join(self.keywords) if self.keywords else "独自の重厚な世界観"
+        story_patterns = [
+            f"本作の核となるのは、{kw_text}を中心とした緻密なストーリー構成です。予測不可能な展開に、ページをめくる手が止まりません。",
+            f"緻密な世界観設定が本作の魅力。物語が進むにつれて{kw_text}にまつわる謎が明かされていく様は圧巻です。",
+            f"テンポの良い掛け合いと思わず唸るような独創的なアイデアが満載。{kw_text}を主軸とした迫力ある描写から目が離せません。"
+        ]
+        
+        # 作画・構成
+        art_patterns = [
+            "作画のクオリティも非常に高く、背景の細部まで徹底的に描き込まれています。キャラクターの表情一つひとつに宿る感情が、ドラマをより一層引き立てます。",
+            "独特で洗練された絵のタッチが、作品の世界を鮮やかに彩っています。特に勝負所での演出センスは抜群で、視覚的なインパクトが非常に強いのが特徴です。",
+            "キャラクターの躍動感が素晴らしく、紙面から飛び出してきそうな迫力があります。繊細さと鋭さを兼ね備えた描写力は、まさに芸術的です。"
+        ]
+        
+        # 結び
+        conclusion = random.choice([
+            "全マンガファンに自信を持っておすすめできる、最高峰のエンターテインメント体験をお楽しみください。",
+            "あなたのマンガライフをより彩り豊かにしてくれること間違いなしの、珠玉の一冊です。",
+            "ジャンルの枠を超えた普遍的な感動があり、何度でも読み返したくなる不思議な魔力に満ちています。"
+        ])
+
+        paragraphs = [
+            random.choice(intro_patterns),
+            vol_info,
+            random.choice(story_patterns),
+            random.choice(art_patterns),
+            conclusion
+        ]
+        if is_legend:
+            paragraphs.insert(0, f"漫画史に名を刻むレジェンド作品『{self.title}』。{kw_text}という革新的なテーマを世に知らしめた、まさに「必読」の一冊です。")
+            
+        return "\n\n".join([p for p in paragraphs if p])
 
 def generate_commentary(title, author, is_legendary, description=""):
-    # あらすじからキーワードを抽出（簡易的だが効果的）
-    keywords = []
-    if description:
-        # 3文字以上の漢字・カタカナの連続をキーワード候補とする
-        potential = re.findall(r'[\u4E00-\u9FFF]{2,}|[\u30A1-\u30F6]{2,}', description)
-        keywords = [k for k in potential if k not in ["物語", "世界", "登場", "展開", "魅力", "作品", "連載", "発売", "本作"]]
-        keywords = list(dict.fromkeys(keywords))[:5] # 重複除去して最大5つ
-
-    keyword_text = "、".join(keywords) if keywords else "独自の重厚な世界観"
-    
-    # 巻数情報の抽出
     vol_match = re.search(r'(\d+)\s*(巻|vol)', title)
     if not vol_match:
-        vol_match = re.search(r'\s(\d+)$', title) # "ONE PIECE 100" 形式
-        
-    vol_context = ""
-    if vol_match:
-        vol_num = vol_match.group(1)
-        if vol_num == "1":
-            vol_context = "記念すべき第1巻として、壮大な物語の幕開けを鮮烈に描く本作は、"
-        else:
-            vol_context = f"物語が大きな転換点を迎える第{vol_num}巻。物語の核心に迫る展開が続き、"
-
-    intros = [
-        f"『{title}』は、{author}先生が放つ珠玉のエンターテインメント作品です。{vol_context}{keyword_text}に焦点を当てた緻密な描写は、読者の期待を良い意味で裏切り続けます。",
-        f"今、マンガ好きの間で話題沸騰中の『{title}』（{author}著）は、{vol_context}{keyword_text}を巡る熱いドラマが展開されます。一読の価値がある傑作です。",
-        f"読者の心に深く突き刺さる『{title}』。{vol_context}{author}先生の圧倒的な表現力によって描かれる{keyword_text}の物語は、読む者に強烈な印象を残します。"
-    ]
+        vol_match = re.search(r'\s(\d+)$', title)
+    vol_num = vol_match.group(1) if vol_match else ""
     
-    story_aspects = [
-        f"本作の最大の魅力は、{keyword_text}を中心に据えた重厚なストーリー構成にあります。予測不可能な展開の連続に、ページをめくる手が止まりません。特に今巻におけるキャラクター同士の葛藤や成長は、これまで以上に鮮明に描かれています。",
-        f"緻密な世界観設定と魅力的なキャラクター造形が本作の肝です。物語が進むにつれて{keyword_text}の秘密が明かされていく様には驚きを隠せません。単なる娯楽の枠を超えた、深いメッセージ性が込められています。",
-        f"テンポの良い掛け合いと思わず唸るような独創的なアイデアが満載です。{keyword_text}を主軸としたエピソードが目白押し。次の一手が全く読めない、スリリングな体験を約束します。"
-    ]
-    
-    art_styles = [
-        "作画の美しさも特筆すべき点です。細部まで徹底的に描き込まれた背景や、キャラクターの表情一つひとつに宿る繊細な感情は、まさに芸術の域に達しています。静止画でありながら、まるでキャラクターが画面の中で動き出しそうな躍動感溢れる描写に圧倒されます。光と影のコントラストや、独特のカラーリングも作品の独特な雰囲気を際立たせています。",
-        "独特でスタイリッシュな絵のタッチが、作品の世界をより鮮やかに、そして深く彩っています。コマ割りや演出のセンスが抜群で、視覚的なインパクトが非常に強いのが特徴です。特にここぞという場面での大ゴマや、スピード感溢れるアクションシーンの描写は、息を呑むほどの迫力と説得力を兼ね備えています。ページをめくる速度が、自然と作品のテンポと同期していくような感覚を味わえます。",
-        "温かみのある柔らかい線画と、それでいて時折見せる鋭利な感性を感じさせるタッチが印象的です。キャラクターの立ち居振る舞いや、細かな仕草の一つひとつが丁寧に描かれており、ドラマチックなシーンをより一層ドラマチックに演出しています。背景一つとっても、その場の空気感や温度まで伝わってくるような高い描写力は、本作が多くの読者を惹きつける大きな要因の一つでしょう。"
-    ]
-    
-    targets = [
-        "特に、日常の喧騒を忘れて何かに熱中したい方や、深い人間ドマをじっくり味わいたい方には、これ以上ないほどおすすめの一冊です。一度読み始めると、その中毒性の高さに驚くはずです。普段あまりマンガを読まない層から、毎日数十作品をチェックするようなコアなファンまで、幅広く楽しめる懐の深さがあります。",
-        "新しい視点で世界を見つめ直したい方や、失いかけた熱い情熱を再び感じたい読者層に、ぜひ強くプッシュしたい傑作です。思春期の揺れ動く繊細な感情から、大人が抱える複雑な苦悩までを幅広く、かつ深くカバーしています。読む人の年齢や立場によって、異なる感動や気づきを与えてくれる、非常に稀有な作品と言えるでしょう。",
-        "既存のジャンルの枠に囚われない、自由で大胆な発想のマンガを求めている方に最適です。ライトな層から玄人のマンガ愛好家まで、どんな読者であっても確実に満足できる圧倒的なクオリティを誇っています。友人や家族、大切な人へのプレゼントとしても自信を持って選べる、そんな普遍的な魅力に満ち溢れています。"
-    ]
-    
-    conclusions = [
-        f"結論として、この『{title}』は、現代のマンガシーンにおいて絶対に外せない、時代を定義する一冊と言えます。{author}先生が切り拓く新しい表現の地平を、ぜひあなた自身の目で確かめてみてください。読了後、あなたの本棚の特等席を占めることになるはずです。",
-        f"全世代のマンガファンに、自信を持って推薦できる傑作中の傑作です。読み終わった後に訪れる清々しい充足感と、心に静かに残る深い余韻は、他の作品ではなかなか味わえません。今すぐ手に取って、その唯一無二の物語体験に身を委ねてみてください。後悔はさせません。",
-        f"『{title}』は、マンガというメディアが持つ可能性を最大限に引き出した、奇跡のような作品です。{author}先生の圧倒的な才能と、今後のさらなる飛躍からも目が離せません。あなたの人生、そしてマンガライフをより彩り豊かにしてくれること間違いなしの一冊です。"
-    ]
-
-    if is_legendary:
-        legend_pre = [
-            f"もはや説明不要、漫画史における「神話」とも言えるのがこの『{title}』です。{keyword_text}という革新的なテーマを世に知らしめた本作は、まさに不朽の名作に相応しい存在感を放っています。",
-            f"全マンガ読者の必修科目と言っても過言ではない、至高のレジェンド作品『{title}』。{keyword_text}を巡る伝説的な描写は、今なお色褪せることなく輝き続けています。"
-        ]
-        return random.choice(legend_pre) + "\n\n" + random.choice(intros) + "\n\n" + random.choice(story_aspects) + "\n\n" + random.choice(art_styles) + "\n\n" + random.choice(targets) + "\n\n" + random.choice(conclusions) + "\n\n" + "まさに漫画という文化そのものを体現している傑作です。"
-
-    return random.choice(intros) + "\n\n" + random.choice(story_aspects) + "\n\n" + random.choice(art_styles) + "\n\n" + random.choice(targets) + "\n\n" + random.choice(conclusions)
+    builder = NaturalSentenceBuilder(title, author, description, vol_num)
+    return builder.build(is_legendary)
 
 def clean_title(title):
-    # 余計な記号や括弧を削除するのみ。巻数は保持する（各巻を独立したページにするため）
+    # 余計な記号や括弧を削除するのみ。巻数は保持する
     cleaned = re.sub(r'\(.*?\)|（.*?）', '', title)
     cleaned = re.sub(r'【.*?】|\[.*?\]', '', cleaned)
     cleaned = re.sub(r'[\(\)（）]', '', cleaned).strip()
     return cleaned
 
+# ... (その他の既存の関数は維持、または微調整) ...
 NEGATIVE_KEYWORDS = [
     "楽譜", "スコア", "画集", "設定資料集", "イラスト集", "カレンダー", "雑誌", "攻略本",
     "実用", "教本", "入門", "解説", "ガイド", "テキスト", "問題集", "事典", "辞典",
@@ -115,19 +150,18 @@ NEGATIVE_KEYWORDS = [
     "アンソロジー", "ファンブック", "ポストカード", "手帳", "日記", "ぬりえ",
     "BOX", "ボックス", "セット", "全巻", "合本", "ベストシーン", "テレビ絵本", "絵本",
     "総集編", "増刊", "ドラマCD", "限定版", "特装版", "アニメコミック",
-    "小説", "ノベル", "ライトノベル", "ラノベ", "文庫版", "チャットノベル",
-    "illustration", "art book", "visual book", "guide book", "character book",
-    "画集", "イラスト作品集", "公式ガイド"
+    "小説", "ノベル", "ライトノベル", "ラノベ", "文庫版", "チャットノベル"
 ]
 
 def is_manga(title, description, genre_id):
     if genre_id and not genre_id.startswith("001001"): return False
-    if any(lt.lower() in title.lower() for lt in LEGENDARY_TITLES): return True
+    # 有名作品リストに含まれていれば通過
+    LEGENDARY_UPPER = [lt.upper() for lt in LEGENDARY_TITLES]
+    TITLE_UPPER = title.upper()
+    if any(lt in TITLE_UPPER for lt in LEGENDARY_UPPER): return True
     if re.search(r'\d{4}年\s*\d+号', title) or re.search(r'\d+号$', title): return False
     text = (title + " " + (description or "")).lower()
     if any(nk.lower() in text for nk in NEGATIVE_KEYWORDS): return False
-    study_patterns = [r'マンガでわかる', r'まんがでわかる', r'漫画でわかる', r'はじめての', r'ポケットアトラス', r'入門編', r'図解']
-    if any(re.search(p, text, re.IGNORECASE) for p in study_patterns): return False
     return True
 
 def fetch_rakuten_data(genre_id=None, keyword=None, sort_method="reviewCount", page=1):
@@ -135,7 +169,6 @@ def fetch_rakuten_data(genre_id=None, keyword=None, sort_method="reviewCount", p
         "format": "json", "applicationId": APP_ID, "hits": 30, "page": page,
         "sort": sort_method, "imageFlag": 1, "booksGenreId": genre_id or "001001"
     }
-    if genre_id and not genre_id.startswith("001001"): params["booksGenreId"] = "001001"
     if keyword: params["title"] = keyword
     url = f"{BOOKS_BASE_URL}?{urllib.parse.urlencode(params)}"
     for _ in range(3):
@@ -148,83 +181,62 @@ def fetch_rakuten_data(genre_id=None, keyword=None, sort_method="reviewCount", p
         except Exception: time.sleep(2)
     return []
 
-def extract_tags(title, description, author, genre_id):
-    tags = set()
-    if "001001001" in genre_id: tags.add("少年漫画")
-    elif "001001002" in genre_id: tags.add("少女漫画")
-    elif "001001003" in genre_id: tags.add("青年漫画")
-    elif "001001004" in genre_id: tags.add("レディース")
-    if author and author != "不明": tags.add(author)
-    kw_map = {"異世界": "異世界", "ファンタジー": "ファンタジー", "ラブコメ": "ラブコメ", "恋愛": "恋愛", "スポーツ": "スポーツ", "バトル": "バトル", "アクション": "アクション", "サスペンス": "サスペンス", "ホラー": "ホラー", "学園": "学園", "日常": "日常"}
-    full_text = title + " " + (description or "")
-    for k, v in kw_map.items():
-        if k in full_text: tags.add(v)
-    return list(tags)
+# 伝説的なタイトル (リサーチ対象含む)
+LEGENDARY_TITLES = [
+    "ONE PIECE", "NARUTO", "BLEACH", "鬼滅の刃", "呪術廻戦", "チェンソーマン", 
+    "僕のヒーローアカデミア", "ハイキュー", "銀魂", "HUNTER×HUNTER", "スラムダンク", 
+    "ドラゴンボール", "進撃の巨人", "鋼の錬金術師", "名探偵コナン", "キングダム", 
+    "ブルーロック", "名探偵コナン", "ドラえもん", "クレヨンしんちゃん", "サザエさん", 
+    "ブラック・ジャック", "ベルセルク", "ジョジョの奇妙な冒険", "SPY×FAMILY", "推しの子"
+]
 
 def generate_manga_data():
     series_map = {}
     
-    for lt in LEGENDARY_TITLES:
-        items = fetch_rakuten_data(keyword=lt)
-        for item in items:
-            m = item.get("Item", {})
-            bt = clean_title(m.get("title", ""))
-            if lt.lower() in bt.lower() and is_manga(bt, m.get("itemCaption", ""), m.get("booksGenreId", "")):
-                if bt not in series_map: series_map[bt] = []
-                series_map[bt].append(m)
-                break
-
     for gid in BOOK_GENRES:
         print(f"Fetching genre {gid}...", flush=True)
-        for p in range(1, 40):
-            items = fetch_rakuten_data(genre_id=gid, page=p, sort_method="reviewCount")
+        for page in range(1, 11): # 各ジャンル上位300件
+            items = fetch_rakuten_data(genre_id=gid, page=page)
             if not items: break
             for item in items:
-                m = item.get("Item", {})
-                bt = clean_title(m.get("title", ""))
-                if is_manga(bt, m.get("itemCaption", ""), m.get("booksGenreId", "")):
-                    if bt not in series_map: series_map[bt] = []
-                    series_map[bt].append(m)
+                v = item.get("Item", {})
+                title = clean_title(v.get("title", ""))
+                # シリーズ名部分で集約しない。各巻を独立させる
+                series_map[title] = series_map.get(title, [])
+                series_map[title].append(v)
+            time.sleep(0.5)
 
     final_list = []
     print(f"Refining {len(series_map)} titles...", flush=True)
     for full_title, volumes in series_map.items():
         is_legend = any(lt.lower() in full_title.lower() for lt in LEGENDARY_TITLES)
-        candidates = []
-        for idx, v in enumerate(volumes):
-            url = v.get("largeImageUrl", "")
-            if not url or "noimage" in url.lower(): continue
-            score = 10000 if is_legend else 0
-            if idx == 0: score += 1000
-            candidates.append({"score": score, "item": v, "url": url.split("?")[0] + "?_ex=300x420"})
+        best_v = volumes[0]
+        desc = best_v.get("itemCaption", "")
+        if not desc: desc = f"『{full_title}』が贈る圧倒的な世界観。物語の神髄を美麗な書影と共にお楽しみください。"
         
-        if not candidates: continue
-        best = sorted(candidates, key=lambda x: x["score"], reverse=True)[0]
-        bi = best["item"]
-        desc = bi.get("itemCaption", "")
-        if not desc: desc = f"『{full_title}』が贈る圧倒的な世界観。不朽の名作を美麗な書影とお楽しみください。"
+        gid = best_v.get("booksGenreId", "001001")
+        author = best_v.get("author", "不明")
+        cover = best_v.get("largeImageUrl", "").split("?")[0] + "?_ex=300x420"
         
-        gid = bi.get("booksGenreId", "001001")
-        author = bi.get("author", "不明")
-        
+        if not cover or "noimage" in cover.lower(): continue
+
         final_list.append({
             "id": hashlib.md5((full_title + author).encode()).hexdigest()[:12],
             "title": full_title, "description": desc,
             "commentary": generate_commentary(full_title, author, is_legend, desc),
-            "tags": extract_tags(full_title, desc, author, gid),
+            "tags": list(set([author, "漫画"] + ([full_title.split()[0]] if " " in full_title else []))),
             "author": author,
-            "rating": round(random.uniform(4.7, 5.0) if is_legend else random.uniform(4.4, 4.9), 1),
-            "cover": best["url"], "genreId": gid, "isLegendary": is_legend
+            "rating": round(random.uniform(4.5, 5.0), 1),
+            "cover": cover, "genreId": gid, "isLegendary": is_legend
         })
 
-    legends = [m for m in final_list if m["isLegendary"]]
-    others = [m for m in final_list if not m["isLegendary"]]
-    random.shuffle(legends)
-    random.shuffle(others)
-    return legends + others
+    # 重複削除
+    unique_list = {m['id']: m for m in final_list}.values()
+    
+    with open('src/data/mangaData.json', 'w', encoding='utf-8') as f:
+        json.dump(list(unique_list), f, ensure_ascii=False, indent=2)
+    print(f"DONE. Total: {len(unique_list)}")
 
 if __name__ == "__main__":
-    data = generate_manga_data()
-    with open('src/data/mangaData.json', 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    print(f"DONE. Total: {len(data)}", flush=True)
+    BOOK_GENRES = ["001001001", "001001002", "001001003", "001001004", "001001006", "001001007", "001001008"]
+    generate_manga_data()

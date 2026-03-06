@@ -3,7 +3,7 @@ import random
 import time
 import os
 import hashlib
-from generate_data import fetch_rakuten_data, clean_title, is_manga, generate_commentary, extract_tags
+from generate_data import fetch_rakuten_data, clean_title, is_manga, generate_commentary
 
 DATA_FILE = 'src/data/mangaData.json'
 
@@ -58,7 +58,7 @@ def daily_update():
                             "title": title,
                             "description": desc,
                             "commentary": generate_commentary(title, author, False, desc),
-                            "tags": extract_tags(title, desc, author, gid),
+                            "tags": list(set([author, "漫画"] + ([title.split()[0]] if " " in title else []))),
                             "author": author,
                             "rating": round(random.uniform(4.4, 4.9), 1),
                             "cover": image_url,
