@@ -134,13 +134,14 @@ const MangaCard = ({ manga, index }) => (
 );
 
 // タグ別一覧ページ
-const TagPage = () => {
+const TagPage = ({ dataLoaded }) => {
   const { tagName } = useParams();
   const navigate = useNavigate();
 
   const filteredManga = useMemo(() => {
+    if (!dataLoaded) return [];
     return mangaDataCache.filter(m => m.tags?.includes(tagName)).sort((a, b) => b.rating - a.rating);
-  }, [tagName]);
+  }, [tagName, dataLoaded]);
 
   useEffect(() => {
     document.title = `${tagName}のおすすめ漫画ランキング - Manga Reach`;
@@ -216,7 +217,7 @@ const TagPage = () => {
 };
 
 // 作品詳細ページコンポーネント (タグをクリック可能に修正)
-const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
+const MangaDetail = ({ dataLoaded, toggleFavorite, isFavorite, addToHistory, adGroup }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const manga = useMemo(() => mangaDataCache.find(m => m.id.toString() === id), [id]);
@@ -327,6 +328,13 @@ const MangaDetail = ({ toggleFavorite, isFavorite, addToHistory, adGroup }) => {
       alert('URLをコピーしました！SNSでシェアしてください。');
     }
   };
+
+  if (!dataLoaded) return (
+    <div className="container" style={{ textAlign: 'center', padding: '10rem 2rem' }}>
+      <div className="loader"></div>
+      <p style={{ marginTop: '1rem' }}>作品情報を読み込み中...</p>
+    </div>
+  );
 
   if (!manga) return (
     <div className="container" style={{ textAlign: 'center', padding: '10rem 2rem' }}>
@@ -790,13 +798,14 @@ function App() {
           } />
           <Route path="/manga/:id" element={
             <MangaDetail
+              dataLoaded={dataLoaded}
               toggleFavorite={toggleFavorite}
               isFavorite={(id) => favorites.includes(id)}
               addToHistory={addToHistory}
               adGroup={adGroup}
             />
           } />
-          <Route path="/tag/:tagName" element={<TagPage />} />
+          <Route path="/tag/:tagName" element={<TagPage dataLoaded={dataLoaded} />} />
           <Route path="/about" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><About /></div>} />
           <Route path="/privacy" element={<div className="container pt-layout"><button onClick={() => window.history.back()} className="back-btn"><ArrowLeft size={16} />戻る</button><PrivacyPolicy /></div>} />
           <Route path="*" element={<NotFound />} />
