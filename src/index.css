@@ -160,8 +160,22 @@ h1 {
   border-radius: 18px;
   overflow: hidden;
   transition: var(--transition-smooth);
-  height: 100%;
   cursor: pointer;
+  z-index: 1;
+}
+
+.series-card .volume-count-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: var(--primary);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px var(--primary-glow);
+  z-index: 3;
 }
 
 .card-link-wrapper {
