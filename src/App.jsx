@@ -238,7 +238,7 @@ const MangaDetail = ({ dataLoaded, toggleFavorite, isFavorite, addToHistory, adG
         const commonTags = m.tags?.filter(t => manga.tags?.includes(t)) || [];
         score += commonTags.length * 3;
         // レーティングも加味 (人気順)
-        score += m.rating * 0.5;
+        score += (m.rating || 0) * 0.5;
         return { item: m, score };
       })
       .sort((a, b) => b.score - a.score)

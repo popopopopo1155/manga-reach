@@ -3,7 +3,7 @@ import random
 import time
 import os
 import hashlib
-from generate_data import fetch_rakuten_data, clean_title, is_manga, generate_commentary
+from generate_data import fetch_rakuten_data, clean_title, is_manga, generate_commentary, generate_sitemap, generate_ssg
 
 DATA_FILE = 'src/data/mangaData.json'
 
@@ -79,10 +79,10 @@ def daily_update():
         
         print("Successfully updated mangaData.json")
         
-        # 4. サイトマップの再生成
-        from generate_sitemap import generate_sitemap
-        generate_sitemap()
-        print("Successfully regenerated sitemap.xml")
+        # 4. サイトマップとSSGの再生成
+        generate_sitemap(manga_data)
+        generate_ssg(manga_data)
+        print("Successfully regenerated sitemap.xml and SSG files")
     else:
         print("No new manga found today.")
 

@@ -11,6 +11,9 @@ import os
 APP_ID = os.environ.get("RAKUTEN_APP_ID", "1016939452195557224")
 BOOKS_BASE_URL = "https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404"
 
+# ターゲット件数
+TARGET_COUNT = 5000
+
 # 主要作品のボリューム別ハイライト（リサーチ済みデータ）
 VOLUME_HIGHLIGHTS = {
     "キングダム": {
@@ -192,36 +195,48 @@ LEGENDARY_TITLES = [
 
 def generate_manga_data():
     series_map = {}
+    sort_methods = ["reviewCount", "sales", "standard"]
     
     for gid in BOOK_GENRES:
-        print(f"Fetching genre {gid}...", flush=True)
-        for page in range(1, 11): # 各ジャンル上位300件
-            items = fetch_rakuten_data(genre_id=gid, page=page)
-            if not items: break
-            for item in items:
-                v = item.get("Item", {})
-                title = clean_title(v.get("title", ""))
-                # シリーズ名部分で集約しない。各巻を独立させる
-                series_map[title] = series_map.get(title, [])
-                series_map[title].append(v)
-            time.sleep(0.5)
+        for sort_m in sort_methods:
+            print(f"Fetching genre {gid} (Sort: {sort_m})...", flush=True)
+            for page in range(1, 101):
+                items = fetch_rakuten_data(genre_id=gid, page=page, sort_method=sort_m)
+                if not items: break
+                for item in items:
+                    v = item.get("Item", {})
+                    title = clean_title(v.get("title", ""))
+                    if is_manga(title, v.get("itemCaption", ""), v.get("booksGenreId", "")):
+                        author = v.get("author", "不明")
+                        m_id = hashlib.md5((title + author).encode()).hexdigest()[:12]
+                        if m_id not in series_map:
+                            series_map[m_id] = v
+                
+                if page % 10 == 0:
+                    print(f"  Current unique items: {len(series_map)}", flush=True)
+                
+                time.sleep(0.1)
+                if len(series_map) >= TARGET_COUNT * 1.5: break
+            if len(series_map) >= TARGET_COUNT * 1.5: break
+        if len(series_map) >= TARGET_COUNT * 1.5: break
 
     final_list = []
-    print(f"Refining {len(series_map)} titles...", flush=True)
-    for full_title, volumes in series_map.items():
+    print(f"Generating commentaries for {len(series_map)} items...", flush=True)
+    
+    for m_id, v in series_map.items():
+        full_title = clean_title(v.get("title", ""))
         is_legend = any(lt.lower() in full_title.lower() for lt in LEGENDARY_TITLES)
-        best_v = volumes[0]
-        desc = best_v.get("itemCaption", "")
+        desc = v.get("itemCaption", "")
         if not desc: desc = f"『{full_title}』が贈る圧倒的な世界観。物語の神髄を美麗な書影と共にお楽しみください。"
         
-        gid = best_v.get("booksGenreId", "001001")
-        author = best_v.get("author", "不明")
-        cover = best_v.get("largeImageUrl", "").split("?")[0] + "?_ex=300x420"
+        gid = v.get("booksGenreId", "001001")
+        author = v.get("author", "不明")
+        cover = v.get("largeImageUrl", "").split("?")[0] + "?_ex=300x420"
         
         if not cover or "noimage" in cover.lower(): continue
 
         final_list.append({
-            "id": hashlib.md5((full_title + author).encode()).hexdigest()[:12],
+            "id": m_id,
             "title": full_title, "description": desc,
             "commentary": generate_commentary(full_title, author, is_legend, desc),
             "tags": list(set([author, "漫画"] + ([full_title.split()[0]] if " " in full_title else []))),
@@ -230,12 +245,81 @@ def generate_manga_data():
             "cover": cover, "genreId": gid, "isLegendary": is_legend
         })
 
-    # 重複削除
-    unique_list = {m['id']: m for m in final_list}.values()
+    random.shuffle(final_list)
+    final_list = final_list[:TARGET_COUNT]
     
     with open('src/data/mangaData.json', 'w', encoding='utf-8') as f:
-        json.dump(list(unique_list), f, ensure_ascii=False, indent=2)
-    print(f"DONE. Total: {len(unique_list)}")
+        json.dump(final_list, f, ensure_ascii=False, indent=2)
+    
+    generate_sitemap(final_list)
+    generate_ssg(final_list)
+    print(f"DONE. Total: {len(final_list)}")
+
+def generate_ssg(manga_list):
+    print(f"Generating SSG for {len(manga_list)} items...")
+    
+    # テンプレート読み込み
+    with open("index.html", "r", encoding="utf-8") as f:
+        template = f.read()
+
+    # 既存のmangaディレクトリをクリーンアップ（必要なら）
+    manga_base_dir = "public/manga"
+    
+    for m in manga_list:
+        m_id = m["id"]
+        title = m["title"]
+        desc = m["description"]
+        author = m["author"]
+        cover = m["cover"]
+        
+        # メタタグとタイトルを置換
+        # シンプルな置換（正規表現を使う方が確実だが、ここではタグの構造が決まっていると仮定）
+        page_html = template
+        page_html = re.sub(r'<title>.*?</title>', f'<title>{title} - Manga Reach (マンガ・リーチ) | 究極のマンガ検索</title>', page_html)
+        
+        # Meta description etc.
+        descript_text = f"{title}（{author}）のあらすじ、評価、レビューをチェック。KindleやKoboなどの電子書籍から紙の本まで、最安値・最新情報を網羅。"
+        page_html = re.sub(r'<meta name="description" content=".*?" />', f'<meta name="description" content="{descript_text}" />', page_html)
+        
+        # OGP
+        page_html = re.sub(r'<meta property="og:title" content=".*?" />', f'<meta property="og:title" content="{title} - Manga Reach" />', page_html)
+        page_html = re.sub(r'<meta property="og:description" content=".*?" />', f'<meta property="og:description" content="{descript_text}" />', page_html)
+        page_html = re.sub(r'<meta property="og:image" content=".*?" />', f'<meta property="og:image" content="{cover}" />', page_html)
+        
+        # Tweet
+        page_html = re.sub(r'<meta name="twitter:title" content=".*?" />', f'<meta name="twitter:title" content="{title} - Manga Reach" />', page_html)
+        page_html = re.sub(r'<meta name="twitter:description" content=".*?" />', f'<meta name="twitter:description" content="{descript_text}" />', page_html)
+        page_html = re.sub(r'<meta name="twitter:image" content=".*?" />', f'<meta name="twitter:image" content="{cover}" />', page_html)
+
+        # Canonical
+        page_html = re.sub(r'<link rel="canonical" href=".*?" />', f'<link rel="canonical" href="https://manga-reach.com/manga/{m_id}" />', page_html)
+
+        # 書き出し
+        dir_path = os.path.join(manga_base_dir, m_id)
+        os.makedirs(dir_path, exist_ok=True)
+        with open(os.path.join(dir_path, "index.html"), "w", encoding="utf-8") as f:
+            f.write(page_html)
+
+    print(f"SSG completed. Generated {len(manga_list)} folders in public/manga/")
+
+def generate_sitemap(manga_list):
+    print(f"Generating sitemap for {len(manga_list)} items...")
+    today = time.strftime("%Y-%m-%d")
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>',
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    
+    base_url = "https://manga-reach.com"
+    for path, priority in [("/", "1.0"), ("/about", "0.5"), ("/privacy", "0.5")]:
+        xml.append(f'  <url><loc>{base_url}{path}</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>{priority}</priority></url>')
+    
+    for m in manga_list:
+        xml.append(f'  <url><loc>{base_url}/manga/{m["id"]}</loc><lastmod>{today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>')
+    
+    xml.append('</urlset>')
+    
+    with open('public/sitemap.xml', 'w', encoding='utf-8') as f:
+        f.write('\n'.join(xml))
+    print("Sitemap generated.")
 
 if __name__ == "__main__":
     BOOK_GENRES = ["001001001", "001001002", "001001003", "001001004", "001001006", "001001007", "001001008"]
