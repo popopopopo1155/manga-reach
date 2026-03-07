@@ -136,6 +136,49 @@ const SeriesCard = ({ series, index }) => (
   </motion.article>
 );
 
+// 個別巻用カードコンポーネント (検索結果や関連作品用)
+const MangaCard = ({ manga, index }) => (
+  <motion.article
+    layout
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, scale: 0.95 }}
+    transition={{ duration: 0.5, delay: index ? (index % 12) * 0.04 : 0 }}
+    className="manga-card"
+  >
+    <Link to={`/manga/${manga.id}`} className="card-link-wrapper">
+      <div className="cover-container">
+        {manga.cover ? (
+          <img
+            src={manga.cover}
+            alt={`${manga.title} - ${manga.author}作品`}
+            className="manga-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="manga-cover-placeholder">
+            <span>画像検索中...</span>
+          </div>
+        )}
+        <div className="rating-overlay">
+          <Star size={12} fill="#fbbf24" stroke="none" />
+          {manga.rating}
+        </div>
+      </div>
+
+      <div className="card-content">
+        <h3 className="manga-title" title={manga.title}>{manga.title}</h3>
+        <p className="manga-author">{manga.author}</p>
+        <div className="card-footer-info">
+          <span className="info-badge">
+            <Info size={14} /> 詳細を見る
+          </span>
+        </div>
+      </div>
+    </Link>
+  </motion.article>
+);
+
 // 個別巻カードコンポーネント (シリーズ詳細用)
 const VolumeCard = ({ manga, index }) => (
   <motion.article
@@ -683,7 +726,31 @@ function App() {
     });
   }, [dataLoaded, seriesData]);
 
-  // (displayCount 関連のステートは維持)
+  // 無限スクロールとユーザーデータのステート
+  const [displayCount, setDisplayCount] = useState(24);
+  const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem('manga_favs') || '[]'));
+  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('manga_history') || '[]'));
+  const [adGroup] = useState(() => Math.random() > 0.5 ? 'A' : 'B');
+
+  const loadMore = useCallback(() => {
+    setDisplayCount(prev => prev + 24);
+  }, []);
+
+  const toggleFavorite = (id) => {
+    setFavorites(prev => {
+      const next = prev.includes(id) ? prev.filter(i => i !== id) : [id, ...prev];
+      localStorage.setItem('manga_favs', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const addToHistory = (id) => {
+    setHistory(prev => {
+      const next = [id, ...prev.filter(i => i !== id)].slice(0, 20);
+      localStorage.setItem('manga_history', JSON.stringify(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!dataLoaded) return;
