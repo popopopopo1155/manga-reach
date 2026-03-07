@@ -138,8 +138,14 @@ def generate_commentary(title, author, is_legendary, description=""):
     builder = NaturalSentenceBuilder(title, author, description, vol_num)
     return builder.build(is_legendary)
 
+def zen_to_han(text):
+    # 全角数字を半角に変換
+    return text.translate(str.maketrans('０１２３４５６７８９', '0123456789'))
+
 def clean_title(title):
-    # 余計な記号や括弧を削除するのみ。巻数は保持する
+    # 全角数字を半角に、また表記を統一
+    title = zen_to_han(title)
+    # 余計な記号や括弧を削除
     cleaned = re.sub(r'\(.*?\)|（.*?）', '', title)
     cleaned = re.sub(r'【.*?】|\[.*?\]', '', cleaned)
     cleaned = re.sub(r'[\(\)（）]', '', cleaned).strip()
