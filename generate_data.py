@@ -216,9 +216,33 @@ def generate_manga_data():
                     print(f"  Current unique items: {len(series_map)}", flush=True)
                 
                 time.sleep(0.1)
-                if len(series_map) >= TARGET_COUNT * 1.5: break
-            if len(series_map) >= TARGET_COUNT * 1.5: break
-        if len(series_map) >= TARGET_COUNT * 1.5: break
+                if len(series_map) >= TARGET_COUNT: break
+            if len(series_map) >= TARGET_COUNT: break
+        if len(series_map) >= TARGET_COUNT: break
+
+    # 第二フェーズ: 重要作品の「全巻スイープ」
+    print(f"\nPhase 2: Deep sweeping for {len(LEGENDARY_TITLES)} legendary titles to ensure full coverage...", flush=True)
+    for title_kw in LEGENDARY_TITLES:
+        print(f"  Sweeping: {title_kw}...", flush=True)
+        for page in range(1, 11):
+            items = fetch_rakuten_data(keyword=title_kw, page=page, sort_method="standard")
+            if not items: break
+            found_new = False
+            for item in items:
+                v = item.get("Item", {})
+                full_title = clean_title(v.get("title", ""))
+                if title_kw.lower() in full_title.lower():
+                    if not is_manga(full_title, v.get("itemCaption", ""), v.get("booksGenreId", "")):
+                        continue
+                    author = v.get("author", "不明")
+                    m_id = hashlib.md5((full_title + author).encode()).hexdigest()[:12]
+                    if m_id not in series_map:
+                        series_map[m_id] = v
+                        found_new = True
+            if not found_new and page > 1: break
+            time.sleep(0.1)
+    
+    print(f"Deep sweep completed. Total unique items: {len(series_map)}", flush=True)
 
     series_groups = {} # series_title -> list of items
     
