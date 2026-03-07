@@ -179,7 +179,7 @@ const MangaCard = ({ manga, index }) => (
   </motion.article>
 );
 
-// 個別巻カードコンポーネント (シリーズ詳細用)
+// 個別巻カードコンポーネント (シリーズ詳細用 - ボタンスタイル)
 const VolumeCard = ({ manga, index }) => (
   <motion.article
     layout
@@ -190,30 +190,39 @@ const VolumeCard = ({ manga, index }) => (
   >
     <Link to={`/manga/${manga.id}`} className="volume-link">
       <div className="volume-cover-wrapper">
-        <img src={manga.cover} alt={manga.title} loading="lazy" />
-        <div className="volume-number-overlay">
-          第{manga.volumeNumber}巻
-        </div>
+        <img src={manga.cover} alt={`${manga.seriesTitle} 第${manga.volumeNumber}巻`} loading="lazy" />
       </div>
       <div className="volume-info">
-        <h4 className="volume-title">第{manga.volumeNumber}巻</h4>
+        <button className="volume-action-btn">
+          第{manga.volumeNumber}巻をチェック
+        </button>
       </div>
     </Link>
   </motion.article>
 );
 
-// シリーズ詳細ページ (Plan A)
+// シリーズ詳細ページ (Plan A - 刷新版)
 const SeriesDetail = ({ dataLoaded }) => {
   const { seriesId } = useParams();
   const navigate = useNavigate();
 
   const series = useMemo(() => {
     if (!dataLoaded) return null;
-    const volumes = mangaDataCache.filter(m => m.seriesId === seriesId);
-    if (volumes.length === 0) return null;
+    const volumesRaw = mangaDataCache.filter(m => m.seriesId === seriesId);
+    if (volumesRaw.length === 0) return null;
+
+    // 重複排除 (念のため ID でユニーク化)
+    const uniqueVolumes = [];
+    const seenIds = new Set();
+    volumesRaw.forEach(v => {
+      if (!seenIds.has(v.id)) {
+        uniqueVolumes.push(v);
+        seenIds.add(v.id);
+      }
+    });
 
     // ソート
-    volumes.sort((a, b) => {
+    uniqueVolumes.sort((a, b) => {
       const aNum = parseInt(a.volumeNumber) || 0;
       const bNum = parseInt(b.volumeNumber) || 0;
       return aNum - bNum;
@@ -221,17 +230,17 @@ const SeriesDetail = ({ dataLoaded }) => {
 
     return {
       seriesId,
-      seriesTitle: volumes[0].seriesTitle,
-      author: volumes[0].author,
-      cover: volumes[0].cover,
-      description: volumes[0].description, // 1巻の説明をシリーズ説明として借用
-      volumes
+      seriesTitle: uniqueVolumes[0].seriesTitle,
+      author: uniqueVolumes[0].author,
+      cover: uniqueVolumes[0].cover,
+      description: uniqueVolumes[0].description,
+      volumes: uniqueVolumes
     };
   }, [seriesId, dataLoaded]);
 
   useEffect(() => {
     if (series) {
-      document.title = `${series.seriesTitle} シリーズ一覧 - Manga Reach`;
+      document.title = `${series.seriesTitle} 全巻リスト - Manga Reach`;
       window.scrollTo(0, 0);
     }
   }, [series]);
@@ -245,23 +254,24 @@ const SeriesDetail = ({ dataLoaded }) => {
 
       <div className="series-header-hero">
         <div className="hero-bg" style={{ backgroundImage: `url(${series.cover})` }}></div>
-        <div className="hero-content">
-          <div className="hero-poster">
-            <img src={series.cover} alt={series.seriesTitle} />
-          </div>
-          <div className="hero-text">
-            <h1 className="series-main-title">{series.seriesTitle}</h1>
-            <p className="series-author-name">{series.author}</p>
-            <p className="series-meta">全{series.volumes.length}巻</p>
-            <div className="series-desc-box">
-              <p>{series.description}</p>
-            </div>
+        <div className="hero-poster">
+          <img src={series.cover} alt={series.seriesTitle} />
+        </div>
+        <div className="hero-text">
+          <h1 className="series-main-title">{series.seriesTitle}</h1>
+          <p className="series-author-name">著者: {series.author}</p>
+          <div className="series-meta">全{series.volumes.length}巻 配信中</div>
+          <div className="series-desc-box">
+            <p>{series.description}</p>
           </div>
         </div>
       </div>
 
       <section className="volume-grid-section">
-        <h2 className="section-title">巻数一覧</h2>
+        <div className="section-header">
+          <Book size={20} className="section-icon color-star" />
+          <h2 className="section-title">全巻リスト</h2>
+        </div>
         <div className="volume-grid">
           {series.volumes.map((vol, idx) => (
             <VolumeCard key={vol.id} manga={vol} index={idx} />
