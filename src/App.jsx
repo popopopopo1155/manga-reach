@@ -272,7 +272,71 @@ const SeriesDetail = ({ dataLoaded }) => {
   );
 };
 
-// 作品詳細ページコンポーネント (タグをクリック可能に修正)
+// タグ専用ページコンポーネント
+const TagPage = ({ dataLoaded }) => {
+  const { tagName } = useParams();
+  const [displayCount, setDisplayCount] = useState(24);
+
+  const filteredSeries = useMemo(() => {
+    if (!dataLoaded) return [];
+    const groups = {};
+    mangaDataCache.forEach(m => {
+      // タグが含まれているか、またはシリーズタイトルにキーワードが含まれているか
+      const matchesTag = m.tags?.some(tag => tag.toLowerCase() === tagName.toLowerCase());
+      if (matchesTag) {
+        if (!groups[m.seriesId]) {
+          groups[m.seriesId] = {
+            seriesId: m.seriesId,
+            seriesTitle: m.seriesTitle,
+            author: m.author,
+            cover: m.cover,
+            rating: m.rating,
+            volumes: []
+          };
+        }
+        groups[m.seriesId].volumes.push(m);
+      }
+    });
+    return Object.values(groups).sort((a, b) => b.rating - a.rating);
+  }, [tagName, dataLoaded]);
+
+  useEffect(() => {
+    document.title = `#${tagName} の作品一覧 - Manga Reach`;
+    window.scrollTo(0, 0);
+  }, [tagName]);
+
+  if (!dataLoaded) return <div className="loader-container"><div className="loader"></div></div>;
+
+  return (
+    <div className="container pt-layout">
+      <Breadcrumbs paths={[{ name: `#${tagName}` }]} />
+      <div className="section-header">
+        <Star size={20} className="section-icon color-star" />
+        <h2>#{tagName} の作品一覧</h2>
+      </div>
+
+      {filteredSeries.length > 0 ? (
+        <div className="manga-grid">
+          {filteredSeries.slice(0, displayCount).map((series, idx) => (
+            <SeriesCard key={series.seriesId} series={series} index={idx} />
+          ))}
+        </div>
+      ) : (
+        <div className="no-results">
+          <p>このタグに一致する作品は見つかりませんでした。</p>
+        </div>
+      )}
+
+      {displayCount < filteredSeries.length && (
+        <div className="load-more-container">
+          <button className="load-more-btn" onClick={() => setDisplayCount(prev => prev + 24)}>
+            もっと見る
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 const MangaDetail = ({ dataLoaded, toggleFavorite, isFavorite, addToHistory, adGroup }) => {
   const { id } = useParams();
   const navigate = useNavigate();
