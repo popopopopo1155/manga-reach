@@ -4,6 +4,7 @@ import Fuse from 'fuse.js';
 import { Search, Star, ExternalLink, ShoppingCart, Info, ShieldCheck, Mail, ArrowLeft, Smartphone, Book, Share2, Heart, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PrivacyPolicy, About } from './components/LegalPages';
+import featuresData from './data/features.json';
 
 // Dynamic data loading to handle large JSON size
 let mangaDataCache = [];
@@ -598,6 +599,39 @@ const MangaDetail = ({ dataLoaded, toggleFavorite, isFavorite, addToHistory, adG
   );
 };
 
+// 特集セクションコンポーネント
+const FeaturesSection = () => (
+  <section className="features-section">
+    <div className="section-header">
+      <Star size={20} className="section-icon color-accent" />
+      <h2>編集部厳選：特集・コラム</h2>
+    </div>
+    <div className="features-grid">
+      {featuresData.map((feat, idx) => (
+        <motion.div
+          key={feat.id}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: idx * 0.1 }}
+          className="feature-card"
+        >
+          <div className="feature-img-wrapper" style={{ backgroundImage: `url(${feat.image})` }}>
+            <div className="feature-overlay">
+              <span className="feature-tag">{feat.tag}</span>
+              <h3 className="feature-card-title">{feat.title}</h3>
+              <p className="feature-card-summary">{feat.summary}</p>
+              <div className="feature-footer">
+                <span className="feature-date">{feat.date}</span>
+                <span className="read-more">詳しく読む</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  </section>
+);
+
 // ホーム（一覧ページ）
 const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, history, adGroup, selectedGenre, setSelectedGenre }) => {
   const observer = useRef();
@@ -665,6 +699,8 @@ const HomePage = ({ query, setQuery, results, loadMore, hasMore, favorites, hist
                 </div>
               </section>
             )}
+
+            <FeaturesSection />
 
             <div className="section-header main-header">
               <Star size={20} className="section-icon color-star" />
