@@ -11,6 +11,37 @@ import os
 APP_ID = os.environ.get("RAKUTEN_APP_ID", "1016939452195557224")
 BOOKS_BASE_URL = "https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404"
 
+# スペシャル巻用のキーワード
+SPECIAL_KEYWORDS = ["イラスト集", "ガイドブック", "公式キャラクターブック", "外伝", "小説", "ノベル", "公式ファンブック", "画集", "設定資料", "コンプリート", "アンソロジー", "キャラクターズ", "ファンブック", "ガイド", "Special", "公式アニメ"]
+
+def get_series_info(title, author):
+    # タイトルを正規化
+    title = clean_title(title)
+    # スペシャル巻判定
+    is_special = any(sk in title for sk in SPECIAL_KEYWORDS)
+    # 巻数抽出
+    base_search_title = re.sub(r'[!！?？:：\s]', '', title)
+    vol_match = re.search(r'(\d+)$', base_search_title)
+    vol_num = vol_match.group(1) if vol_match else "1"
+    # 【重要】コア・シリーズ名の抽出
+    core_title = title
+    for sk in SPECIAL_KEYWORDS:
+        core_title = re.sub(sk, '', core_title, flags=re.IGNORECASE).strip()
+    # 巻数（末尾の数字）を除去
+    core_title = re.sub(r'\s*\d+$', '', core_title).strip()
+    # 記号を再度除去して ID 生成用のキーにする
+    normalized_core_name = re.sub(r'[!！?？:：\s]', '', core_title)
+    # レジェンダリータイトルがあれば優先
+    for lt in LEGENDARY_TITLES:
+        norm_lt = re.sub(r'[!！?？:：\s]', '', lt)
+        if normalized_core_name.startswith(norm_lt) or norm_lt.startswith(normalized_core_name):
+            normalized_core_name = norm_lt
+            core_title = lt
+            break
+    if not normalized_core_name: normalized_core_name = "unknown"
+    series_id = hashlib.md5((normalized_core_name + author).encode()).hexdigest()[:12]
+    return series_id, core_title, vol_num, is_special
+
 # ターゲット件数
 TARGET_COUNT = 5000
 
@@ -231,13 +262,15 @@ def generate_manga_data():
     print(f"\nPhase 2: Deep sweeping for {len(LEGENDARY_TITLES)} legendary titles to ensure full coverage...", flush=True)
     for title_kw in LEGENDARY_TITLES:
         print(f"  Sweeping: {title_kw}...", flush=True)
-        for page in range(1, 11):
+        # 検索深度を強化（20ページまで）
+        for page in range(1, 21):
             items = fetch_rakuten_data(keyword=title_kw, page=page, sort_method="standard")
             if not items: break
             found_new = False
             for item in items:
                 v = item.get("Item", {})
                 full_title = clean_title(v.get("title", ""))
+                # 作品名が含まれているかチェック
                 if title_kw.lower() in full_title.lower():
                     if not is_manga(full_title, v.get("itemCaption", ""), v.get("booksGenreId", "")):
                         continue
@@ -246,52 +279,24 @@ def generate_manga_data():
                     if m_id not in series_map:
                         series_map[m_id] = v
                         found_new = True
-            if not found_new and page > 1: break
+            if not found_new and page > 1: break # 若干の余裕
             time.sleep(0.1)
     
     print(f"Deep sweep completed. Total unique items: {len(series_map)}", flush=True)
 
     series_groups = {} # series_id -> list of items
-    # スペシャル巻用のキーワード
-    SPECIAL_KEYWORDS = ["イラスト集", "ガイドブック", "公式キャラクターブック", "外伝", "小説", "ノベル", "公式ファンブック", "画集", "設定資料", "コンプリート", "アンソロジー"]
 
     print(f"Grouping into series and generating commentaries for {len(series_map)} items...", flush=True)
     
     for m_id, v in series_map.items():
         raw_title = v.get("title", "")
-        # タイトルを正規化（記号削除、全角数字変換）
-        title = clean_title(raw_title)
         author = v.get("author", "不明")
         
-        # スペシャル巻判定
-        is_special = any(sk in title for sk in SPECIAL_KEYWORDS)
+        # 共通関数で情報を取得
+        series_id, core_title, vol_num, is_special = get_series_info(raw_title, author)
         
-        # タイトルから巻数と純粋なシリーズ名を分離
-        # "ハイキュー!! 45" -> series_title: "ハイキュー", vol: "45"
-        # 記号を除去してマッチング精度を上げる
-        base_search_title = re.sub(r'[!！?？:：\s]', '', title)
-        vol_match = re.search(r'(\d+)$', base_search_title)
-        
-        if vol_match and not is_special:
-            vol_num = vol_match.group(1)
-            # 巻数を除いた部分をシリーズ名候補とする
-            series_title_match = re.search(r'^(.*?)\s*(\d+)$', title)
-            if series_title_match:
-                series_title = series_title_match.group(1).strip()
-            else:
-                #  fallback: 巻数部分を空文字に変える
-                series_title = title.replace(vol_num, "").strip()
-        else:
-            series_title = title
-            vol_num = "1"
-            
-        # 記号を除去したシリーズ名で ID を生成し、揺らぎを吸収
-        normalized_series_name = re.sub(r'[!！?？:：\s]', '', series_title)
-        if not normalized_series_name: normalized_series_name = "unknown"
-        
-        series_id = hashlib.md5((normalized_series_name + author).encode()).hexdigest()[:12]
-        
-        is_legend = any(lt.lower() in series_title.lower() for lt in LEGENDARY_TITLES)
+        title = clean_title(raw_title)
+        is_legend = any(lt.lower() in core_title.lower() for lt in LEGENDARY_TITLES)
         desc = v.get("itemCaption", "")
         if not desc: desc = f"『{title}』が贈る圧倒的な世界観。物語の神髄を美麗な書影と共にお楽しみください。"
         
@@ -303,12 +308,12 @@ def generate_manga_data():
             "id": m_id,
             "title": title,
             "seriesId": series_id,
-            "seriesTitle": series_title,
+            "seriesTitle": core_title,
             "volumeNumber": vol_num,
             "isSpecial": is_special,
             "description": desc,
             "commentary": generate_commentary(title, author, is_legend, desc),
-            "tags": list(set([author, "漫画", series_title] + ([series_title.split()[0]] if " " in series_title else []))),
+            "tags": list(set([author, "漫画", core_title])),
             "author": author,
             "rating": round(random.uniform(4.5, 5.0), 1),
             "cover": cover, "genreId": gid, "isLegendary": is_legend

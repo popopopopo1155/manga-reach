@@ -3,7 +3,7 @@ import random
 import time
 import os
 import hashlib
-from generate_data import fetch_rakuten_data, clean_title, is_manga, generate_commentary, generate_sitemap, generate_ssg
+from generate_data import fetch_rakuten_data, clean_title, is_manga, generate_commentary, generate_sitemap, generate_ssg, get_series_info
 
 DATA_FILE = 'src/data/mangaData.json'
 
@@ -38,11 +38,15 @@ def daily_update():
                 
             for item in items:
                 m = item.get("Item", {})
-                title = clean_title(m.get("title", ""))
+                raw_title = m.get("title", "")
+                title = clean_title(raw_title)
                 
                 # まだサイトにない漫画を見つける
                 if is_manga(title, m.get("itemCaption", ""), m.get("booksGenreId", "")):
                     author = m.get("author", "不明")
+                    
+                    # 共通関数で情報を取得
+                    series_id, core_title, vol_num, is_special = get_series_info(raw_title, author)
                     m_id = hashlib.md5((title + author).encode()).hexdigest()[:12]
                     
                     if m_id not in existing_ids and title not in existing_titles:
@@ -56,9 +60,13 @@ def daily_update():
                         new_manga = {
                             "id": m_id,
                             "title": title,
+                            "seriesId": series_id,
+                            "seriesTitle": core_title,
+                            "volumeNumber": vol_num,
+                            "isSpecial": is_special,
                             "description": desc,
                             "commentary": generate_commentary(title, author, False, desc),
-                            "tags": list(set([author, "漫画"] + ([title.split()[0]] if " " in title else []))),
+                            "tags": list(set([author, "漫画"] + ([core_title.split()[0]] if " " in core_title else []))),
                             "author": author,
                             "rating": round(random.uniform(4.4, 4.9), 1),
                             "cover": image_url,
